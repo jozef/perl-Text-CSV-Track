@@ -158,7 +158,7 @@ sub store {
 	my $file_fh        = $self->{file_fh};
 
 	if (not $full_time_lock) {
-		open(my $file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
+		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
 	
 		#lock and truncate the access store file
 		flock($file_fh, LOCK_EX) or croak "can't lock file '$file_name' - $OS_ERROR\n";

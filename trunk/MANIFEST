@@ -2,5 +2,5 @@ Changes
 Makefile.PL
 MANIFEST
 README
-t/Text-CSV-TrackMAX.t
-lib/Text/CSV/TrackMAX.pm
+t/Text-CSV-Track.t
+lib/Text/CSV/Track.pm
