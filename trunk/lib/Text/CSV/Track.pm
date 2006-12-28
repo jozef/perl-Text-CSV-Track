@@ -210,7 +210,7 @@ sub _init {
 			$open_mode = '+>>';
 		}
 		else {
-			$open_mode = '<+';
+			$open_mode = '+<';
 		}
 	}
 	
