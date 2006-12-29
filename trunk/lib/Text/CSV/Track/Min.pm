@@ -4,7 +4,7 @@ Text::CSV::Track::Min - same as Text::CSV::Track but stores the smaller value
 
 =head1 VERSION
 
-v1.0 - created to track last reachable time
+v0.1 - created to track last reachable time
 
 =head1 SYNOPSIS
 

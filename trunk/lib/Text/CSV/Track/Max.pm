@@ -4,7 +4,7 @@ Text::CSV::Track::Max - same as Text::CSV::Track but stores the greater value
 
 =head1 VERSION
 
-v1.0 - created to track last login time
+v0.1 - created to track last login time
 
 =head1 SYNOPSIS
 

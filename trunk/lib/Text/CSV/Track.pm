@@ -4,7 +4,7 @@ Text::CSV::Track - module to work with .csv file that stores some value per iden
 
 =head1 VERSION
 
-v1.0 - created to track answer from survey
+v0.1 - created to track answer from survey
 
 =head1 SYNOPSIS
 
