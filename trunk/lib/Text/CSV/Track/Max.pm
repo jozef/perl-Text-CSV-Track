@@ -1,6 +1,6 @@
 =head1 NAME
 
-Text::CSV::Track::Max - same as Text::CSV::Track but stores the higher value
+Text::CSV::Track::Max - same as Text::CSV::Track but stores the greater value
 
 =head1 VERSION
 

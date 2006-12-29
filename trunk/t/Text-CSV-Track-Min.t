@@ -6,7 +6,7 @@
 use Test::More; # 'no_plan';
 BEGIN { plan tests => 12 };
 
-use Text::CSV::Track::Max;
+use Text::CSV::Track::Min;
 use File::Temp qw{tempfile};	#generate temp filename
 use File::Spec qw{tmpdir};		#get temp directory
 use English qw(-no_match_vars);
@@ -27,9 +27,9 @@ ok(1,															'all required modules loaded'); # If we made it this far, we
 ### TEST WITHOUT FILE MANIPULATION
 
 #creation of object
-my $track_object = Text::CSV::Track::Max->new();
+my $track_object = Text::CSV::Track::Min->new();
 ok(defined $track_object,								'object creation');
-ok($track_object->isa('Text::CSV::Track::Max'),	'right class');
+ok($track_object->isa('Text::CSV::Track::Min'),	'right class');
 
 #store one value
 $track_object->value_of('test1', 123);
@@ -46,9 +46,9 @@ $track_object->value_of('test1', undef);
 is(scalar grep (defined $track_object->value_of($_), $track_object->ident_list()), 9,
 																'has 9 elements after removal');
 
-#try to set smaller value
-$track_object->value_of('test3', 2);
-isnt($track_object->value_of('test3'), 2,			'we should have old value in "test3"');
+#try to set greater value
+$track_object->value_of('test3', 9999);
+isnt($track_object->value_of('test3'), 9999,		'we should have old value in "test3"');
 
 
 ### TESTS FILE
@@ -77,12 +77,12 @@ $OS_ERROR = undef;
 ### TWO PROCESSES WRITTING AT ONCE
 
 #do change in first process
-$track_object  = Text::CSV::Track::Max->new({ file_name => $file_name, ignore_missing_file => 1 });
-$track_object->value_of('atonce','432');
+$track_object  = Text::CSV::Track::Min->new({ file_name => $file_name, ignore_missing_file => 1 });
+$track_object->value_of('atonce','234');
 
 #do change in second process
-my $track_object2 = Text::CSV::Track::Max->new({ file_name => $file_name, ignore_missing_file => 1 });
-$track_object2->value_of('atonce','234');
+my $track_object2 = Text::CSV::Track::Min->new({ file_name => $file_name, ignore_missing_file => 1 });
+$track_object2->value_of('atonce','432');
 
 #now do store for both of them
 $track_object->store();
@@ -93,24 +93,24 @@ $track_object  = undef;
 $track_object2 = undef;
 
 #now read the result and check
-$track_object  = Text::CSV::Track::Max->new({ file_name => $file_name });
-is($track_object->value_of('atonce'), 432,	'do we have greater value stored before?');
+$track_object  = Text::CSV::Track::Min->new({ file_name => $file_name });
+is($track_object->value_of('atonce'), 234,	'do we have smaller value?');
 
 #try do change to smaller number
-$track_object  = Text::CSV::Track::Max->new({ file_name => $file_name, ignore_missing_file => 1 });
+$track_object  = Text::CSV::Track::Min->new({ file_name => $file_name, ignore_missing_file => 1 });
 $track_object->value_of('atonce','-100');
 $track_object->store();
 $track_object  = undef;
 
 #check
-$track_object  = Text::CSV::Track::Max->new({ file_name => $file_name });
-is($track_object->value_of('atonce'), 432,	'do we still have it?');
+$track_object  = Text::CSV::Track::Min->new({ file_name => $file_name });
+is($track_object->value_of('atonce'), -100,	'do we still have it?');
 
 
 ### TEST LOCKING
 
 #open with full time locking
-$track_object = Text::CSV::Track::Max->new({ file_name => $file_name, full_time_lock => 1 });
+$track_object = Text::CSV::Track::Min->new({ file_name => $file_name, full_time_lock => 1 });
 open(my $fh, "<", $file_name) or die "can't open file '$file_name' - $OS_ERROR";
 $track_object->value_of('x', 1);
 #check lazy init. it should succeed
