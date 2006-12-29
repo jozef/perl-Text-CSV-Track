@@ -104,7 +104,7 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-our $VERSION = '1.2';
+our $VERSION = '0.1';
 use 5.006;
 
 use strict;

@@ -19,7 +19,7 @@ old one. It it's higher then the value is updated if not old value persists.
 
 package Text::CSV::Track::Min;
 
-our $VERSION = '1.0';
+our $VERSION = '0.1';
 use 5.006;
 
 use strict;
