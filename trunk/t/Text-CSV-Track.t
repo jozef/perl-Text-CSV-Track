@@ -4,7 +4,7 @@
 #########################
 
 use Test::More; # 'no_plan';
-BEGIN { plan tests => 20 };
+BEGIN { plan tests => 29 };
 
 use Text::CSV::Track;
 
@@ -18,7 +18,7 @@ use strict;
 use warnings;
 
 #constants
-my $DEVELOPMENT = 1;
+my $DEVELOPMENT = 0;
 my $MULTI_LINE_SUPPORT = 0;
 my $EMPTY_STRING = q{};
 
@@ -46,7 +46,8 @@ is($track_object->ident_list, 11,					'has 11 elements');
 
 #remove one
 $track_object->value_of('test1', undef);
-is($track_object->ident_list, 10,					'has 10 elements after removal');
+is(scalar grep (defined $track_object->value_of($_), $track_object->ident_list()), 10,
+																'has 10 elements after removal');
 
 
 ### TESTS WITH NEW FILE
@@ -58,11 +59,12 @@ my (undef, $short_file_name) = tempfile($tmp_template, OPEN => 0);
 my $tmpdir = File::Spec->tmpdir();
 my $file_name = $tmpdir.'/'.$tmp_template;	#default will be overwriteen if not in DEVELOPMENT mode
 
-SKIP: {
-	skip "random temp filename it's development time", 1 if $DEVELOPMENT;
-	
+#in development it's better to have steady filename other wise it should be random
+if ($DEVELOPMENT) {
+	print "skip random temp filename it's development time\n";	
+}
+else {
 	$file_name = $tmpdir.'/'.$short_file_name;
-	ok(-w $tmpdir,											"temp filename is '$file_name'");
 }
 
 #remove temp file if exists
@@ -99,7 +101,6 @@ $track_object = undef;
 
 ### TEST WITH GENERATED FILE
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
-
 is($track_object->ident_list, 100,					'has 100 elements after read');
 my $ident = 'test value 23';
 my $stored_string = qq{store string's value number "23" with "' - quotes and \\"\\' backslash quotes};
@@ -107,13 +108,26 @@ is($track_object->value_of($ident), $stored_string,
 																'check one stored value');
 
 #change a value
-$track_object->value_of($ident,'"\\ ' x 10);
-$ident = 'test value 2';
-$track_object->value_of($ident, undef);
+$stored_string = '"\\ ' x 10;
+$track_object->value_of($ident, $stored_string);
+my $ident2 = 'test value 2';
+$track_object->value_of($ident2, undef);
 
 #save to file
 eval { $track_object->store(); };
 is($OS_ERROR, $EMPTY_STRING,							"save with removal and single change");
+
+#clean object
+$track_object = undef;
+
+#check
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->ident_list, 99,					'has 99 elements after read');
+is($track_object->value_of($ident), $stored_string,			"is '$ident' '$stored_string'?");
+
+#put back the number of elements to 100
+$track_object->value_of('test value 2 2222', '2222');
+$track_object->store();
 
 #clean object
 $track_object = undef;
@@ -153,11 +167,11 @@ my @bckup_lines = sort @lines;
 #add badly formated line
 push(@lines, qq{"aman2\n});
 push(@lines, qq{"xman3,"muhaha\n});
-write_file($file_name, @lines);
+write_file($file_name, sort @lines);
 
 #check
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
-is($track_object->ident_list, 99,					'was badly formated lines ignored?');
+is($track_object->ident_list, 100,					'was badly formated lines ignored?');
 $track_object->store();
 $track_object = undef;
 
@@ -176,21 +190,80 @@ sub compare_arrays {
 ok(compare_arrays(\@lines, \@bckup_lines),		'compare if now the values are the same as before adding two badly formated lines');
 
 
+### TWO PROCESSES WRITTING AT ONCE
+
+#do change in first process
+$track_object  = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of('atonce2'), undef,	'atonce2 undef in first process');
+$track_object->value_of('atonce','432');
+
+#do change in second process
+my $track_object2 = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object2->value_of('atonce'), undef,		'atonce undef in second process');
+$track_object2->value_of('atonce2','234');
+
+#now do store for both of them
+$track_object->store();
+$track_object2->store();
+
+$track_object  = undef;
+$track_object2 = undef;
+
+#now read the result and check
+$track_object  = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of('atonce2'), 234,		'do we have atonce2?');
+is($track_object->value_of('atonce'), undef,		'do we miss atonce overwritten by second process?');
+
+#same as above but now we have atonce and atonce2
+#we test if in case we do only set-s we will inherite changes from other processes
+
+#do change in first process
+$track_object  = Text::CSV::Track->new({ file_name => $file_name });
+$track_object->value_of('atonce', '2nd 432');
+
+#do change in second process
+$track_object2 = Text::CSV::Track->new({ file_name => $file_name });
+$track_object2->value_of('atonce2', '2nd 234');
+
+#now do store for both of them
+$track_object2->store();
+$track_object->store();
+
+$track_object  = undef;
+$track_object2 = undef;
+
+#now read the result and check
+$track_object  = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of('atonce'), '2nd 432',	'does atonce has the right value?');
+is($track_object->value_of('atonce2'), '2nd 234',	'does atonce2 has the right value?');
+
+
+
 ### TEST LOCKING
 
 #open with full time locking
 $track_object = Text::CSV::Track->new({ file_name => $file_name, full_time_lock => 1 });
 open(my $fh, "<", $file_name) or die "can't open file '$file_name' - $OS_ERROR";
+$track_object->value_of('x', 1);
+#check lazy init. it should succeed
+isnt(flock($fh, LOCK_SH | LOCK_NB), 0,				'try shared lock while lazy init should not be activated, should succeed');
+#release the lock
+flock($fh, LOCK_UN) or die "flock ulock failed - $OS_ERROR";
+
 #active lazy initialization
-$track_object->value_of('x', 0);
+$track_object->value_of('x');
 #try non blocking shared flock. it should fail
-is(flock($fh, LOCK_SH | LOCK_NB), 0,				'try shared lock while in full time lock mode, should fail');
-close($fh);
+is(flock($fh, LOCK_SH | LOCK_NB), 0,				"try shared lock while in full time lock mode, should fail - $OS_ERROR");
 $track_object = undef;
+
+#try non blocking shared flock after object is destroied. now it should succeed
+isnt(flock($fh, LOCK_SH | LOCK_NB), 0,				'try shared lock after track object is destroyed, should succeed');
+
+close($fh);
 
 
 ### CLEANUP
 
 #remove temporary file
-unlink($file_name);
+unlink($file_name) if not $DEVELOPMENT;
 
