@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     NAME              => 'Text::CSV::Track',
     VERSION_FROM      => 'lib/Text/CSV/Track.pm', # finds $VERSION
-    PREREQ_PM         => { Class::Accessor::Fast => 0.22,
+    PREREQ_PM         => { Class::Accessor::Fast => 0,
                            Text::CSV => 0,
 			   Carp::Clan => 0,
 			    }, # e.g., Module::Name => 1.1

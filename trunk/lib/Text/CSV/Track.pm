@@ -4,6 +4,11 @@ Text::CSV::Track - module to work with .csv file that stores some value per iden
 
 =head1 VERSION
 
+v0.2 - typing errors in comments corrected
+     - prerequisities changed no more Class::Accessor::Fast => 0.22 (it was there by exident)
+     - small cleanup
+     - todo list added
+
 v0.1 - created to track answer from survey
 
 =head1 SYNOPSIS
@@ -94,6 +99,14 @@ will return the array of identificators
 
 =back
 
+=head1 TODO
+
+- mention Track::Max and Track::Min
+- store() shuld croak when error so that lines will be not missing
+- ident_list() should return number of non undef rows in scalar context
+- strategy for Track ->new({ strategy => sub { $a > $b } })
+- then rewrite max/min to use it this way
+
 =head1 AUTHOR
 
 Jozef Kutej <jozef.kutej@hp.com>
@@ -104,14 +117,23 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-our $VERSION = '0.1';
+use version; our $VERSION = qv('0.2');
 use 5.006;
 
 use strict;
 use warnings;
 
 use base qw(Class::Accessor::Fast);
-Text::CSV::Track->mk_accessors(qw(file_name file_fh rh_value_of lazy_init ignore_missing_file full_time_lock _no_lock));
+__PACKAGE__->mk_accessors(
+	qw(
+		file_name
+		file_fh rh_value_of
+		lazy_init
+		ignore_missing_file
+		full_time_lock
+		_no_lock
+	)
+);
 
 use FindBin;
 
