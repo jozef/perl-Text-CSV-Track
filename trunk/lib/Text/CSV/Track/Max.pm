@@ -4,11 +4,11 @@ Text::CSV::Track::Max - same as Text::CSV::Track but stores the greatest value
 
 =head1 VERSION
 
-v0.1 - created to track last login time
+This documentation refers to version 0.2. 
 
 =head1 SYNOPSIS
 
-	see Text::CSV::Track
+see L<Text::CSV::Track> as this is inherited object from it.
 	
 =head1 DESCRIPTION
 
@@ -19,8 +19,8 @@ old one. It it's higher then the value is updated if not old value persists.
 
 package Text::CSV::Track::Max;
 
-use version; our $VERSION = qv('0.2');
-use 5.006;
+our $VERSION = '0.2';
+use 5.008;
 
 use strict;
 use warnings;

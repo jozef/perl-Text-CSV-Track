@@ -1,4 +1,13 @@
-Revision history for Perl extension Text::CSV::TrackMAX.
+Revision history for Perl extension Text::CSV::Track.
+
+0.2   Jan 02 2007
+	- typing errors in comments corrected
+	- prerequisities changed no more Class::Accessor::Fast => 0.22 (it was there by exident)
+	- small cleanup
+	- todo list added
+
+0.1   Dec 29 2006
+	- created to track answer from survey
 
 0.01  Thu Nov 30 13:50:47 2006
 	- original version; created by h2xs 1.23 with options

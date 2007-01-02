@@ -4,12 +4,7 @@ Text::CSV::Track - module to work with .csv file that stores some value per iden
 
 =head1 VERSION
 
-v0.2 - typing errors in comments corrected
-     - prerequisities changed no more Class::Accessor::Fast => 0.22 (it was there by exident)
-     - small cleanup
-     - todo list added
-
-v0.1 - created to track answer from survey
+This documentation refers to version 0.2. 
 
 =head1 SYNOPSIS
 
@@ -107,6 +102,10 @@ will return the array of identificators
 - strategy for Track ->new({ strategy => sub { $a > $b } })
 - then rewrite max/min to use it this way
 
+=head1 SEE ALSO
+
+SVN repository - L<http://svn.cle.sk/svn/cpan/Text-CSV-Track/>
+
 =head1 AUTHOR
 
 Jozef Kutej <jozef.kutej@hp.com>
@@ -117,7 +116,7 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-use version; our $VERSION = qv('0.2');
+our $VERSION = '0.2';
 use 5.006;
 
 use strict;
