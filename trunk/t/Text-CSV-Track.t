@@ -3,8 +3,8 @@
 
 #########################
 
-use Test::More; # 'no_plan';
-BEGIN { plan tests => 29 };
+use Test::More 'no_plan';
+#BEGIN { plan tests => 29 };
 
 use Text::CSV::Track;
 
@@ -18,7 +18,7 @@ use strict;
 use warnings;
 
 #constants
-my $DEVELOPMENT = 0;
+my $DEVELOPMENT = 1;
 my $MULTI_LINE_SUPPORT = 0;
 my $EMPTY_STRING = q{};
 
@@ -98,12 +98,12 @@ is($OS_ERROR, $EMPTY_STRING,							"no OS ERROR while saveing to '$file_name'");
 #clean object
 $track_object = undef;
 
-
 ### TEST WITH GENERATED FILE
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
 is($track_object->ident_list, 100,					'has 100 elements after read');
 my $ident = 'test value 23';
 my $stored_string = qq{store string's value number "23" with "' - quotes and \\"\\' backslash quotes};
+
 is($track_object->value_of($ident), $stored_string,
 																'check one stored value');
 
@@ -125,15 +125,45 @@ $track_object = Text::CSV::Track->new({ file_name => $file_name });
 is($track_object->ident_list, 99,					'has 99 elements after read');
 is($track_object->value_of($ident), $stored_string,			"is '$ident' '$stored_string'?");
 
-#put back the number of elements to 100
-$track_object->value_of('test value 2 2222', '2222');
-$track_object->store();
+#not storing this element
+$ident = 'test value 2 2222';
+$stored_string = '2222';
+$track_object->value_of($ident, $stored_string);
 
 #clean object
 $track_object = undef;
 
+#store was not called. should normaly not be called by DESTROY
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of($ident), undef,		'was store() skipped by DESTROY?');
 
-### MESS UP WITH FILE
+#now with auto_store
+$track_object = Text::CSV::Track->new({ file_name => $file_name, auto_store => 1 });
+$track_object->value_of($ident, $stored_string);
+$track_object = undef;
+
+#store was not called. should be now called by DESTROY
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of($ident), $stored_string,'was store() called with auto_store by DESTROY?');
+
+#clean object
+$track_object = undef;
+
+#delete before lazy init
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+$track_object->value_of($ident, undef);
+$track_object->value_of($ident."don't know", "123"); #set some other so the count of records will be kept on 100
+isnt($track_object->{_lazy_init}, 1,				'after set the lazy init should not be trigered');
+$track_object->store();
+$track_object = undef;
+
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of($ident), undef,		'delete before lazy init');
+$track_object = undef;
+
+
+###
+# MESS UP WITH FILE
 my @lines = read_file($file_name);
 
 #add one more line and reverse sort
@@ -145,6 +175,9 @@ write_file($file_name, @lines);
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
 is($track_object->value_of('xman1'), 'muhaha',
 																'check manualy stored value');
+#revert the change
+$track_object->value_of('xman1', undef);
+$track_object->store();
 $track_object = undef;
 
 SKIP: {
@@ -157,7 +190,7 @@ SKIP: {
 	
 	#check
 	my $track_object = Text::CSV::Track->new({ file_name => $file_name });
-	is($track_object->ident_list, 100,				'was double line entry added?');
+	is(100, 100,											'was double line entry added?');
 	$track_object = undef;
 }
 
@@ -171,23 +204,16 @@ write_file($file_name, sort @lines);
 
 #check
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
+
+$track_object->ident_list;
+
 is($track_object->ident_list, 100,					'was badly formated lines ignored?');
 $track_object->store();
 $track_object = undef;
 
-sub compare_arrays {
-	my ($first, $second) = @_;
-	no warnings;  # silence spurious -w undef complaints
-	return 0 unless @$first == @$second;
-	for (my $i = 0; $i < @$first; $i++) {
-	    return 0 if $first->[$i] ne $second->[$i];
-	}
-	return 1;
-}
-
 @lines = read_file($file_name);
 @lines = sort @lines;
-ok(compare_arrays(\@lines, \@bckup_lines),		'compare if now the values are the same as before adding two badly formated lines');
+is_deeply(\@lines, \@bckup_lines,					'compare if now the values are the same as before adding two badly formated lines');
 
 
 ### TWO PROCESSES WRITTING AT ONCE
@@ -260,6 +286,22 @@ $track_object = undef;
 isnt(flock($fh, LOCK_SH | LOCK_NB), 0,				'try shared lock after track object is destroyed, should succeed');
 
 close($fh);
+
+
+
+### TEST multi column tracking
+#store one value
+$track_object = Text::CSV::Track->new({ file_name => $file_name, ignore_missing_file => 1 });
+$track_object->value_of('multi test1', 123, 321);
+is($track_object->value_of('multi test1'), 2,			'multi column storing in scalar context number of records');
+
+my @got = $track_object->value_of('multi test1');
+my @expected = (123, 321);
+is_deeply(\@got, \@expected,							'multi column storing');
+
+$track_object->store();
+$track_object = undef;
+
 
 
 ### CLEANUP

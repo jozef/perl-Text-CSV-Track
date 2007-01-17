@@ -1,10 +1,10 @@
 =head1 NAME
 
-Text::CSV::Track - module to work with .csv file that stores some value per identificator
+Text::CSV::Track - module to work with .csv file that stores some value(s) per identificator
 
 =head1 VERSION
 
-This documentation refers to version 0.2. 
+This documentation refers to version 0.3. 
 
 =head1 SYNOPSIS
 
@@ -13,11 +13,17 @@ This documentation refers to version 0.2.
 	#create object
 	my $access_time = Text::CSV::Track->new({ file_name => $file_name, ignore_missing_file => 1 });
 	
-	#store value
+	#set single value
+	$access_time->value_of($login, $access_time);
+
+	#fetch single value
+	print $access_time->value_of($login);
+
+	#set multiple values
 	$access_time->value_of($login, $access_time);
 	
-	#fetch value
-	print $access_time->value_of($login);
+	#fetch multiple values
+	my @fields = $access_time->value_of($login);
 	
 	#save changes
 	$access_time->store();
@@ -31,7 +37,7 @@ This documentation refers to version 0.2.
 
 The module manipulates csv file:
 
-"identificator","value"
+"identificator","value1"
 ...
 
 It is designet to work when multiple processes access the same file at
@@ -53,6 +59,9 @@ flag is needed. The exclusive lock will be held from the first read until
 the object is destroied. While the lock is there no other process that uses
 flock can read or write to this file.
 
+When setting and getting only single value value_of($ident) will return scalar.
+If setting/getting multiple columns then an array.
+
 =head1 METHODS
 
 =over 4
@@ -63,6 +72,7 @@ flock can read or write to this file.
 		file_name           => 'filename.csv',
 		ignore_missing_file => 1,
 		full_time_lock      => 1,
+		auto_store          => 1,
 		
 	})
 	
@@ -77,6 +87,8 @@ if 'full_time_lock' is set the exclusive lock will be held until the object is
 not destroyed. use it when you need both reading the values and changing the values.
 If you need just read OR change then you don't need to set this flag. See description
 about lazy initialization.
+
+if 'auto_store' is on then the store() is called when object is destroied
 
 =item value_of()
 
@@ -97,10 +109,11 @@ will return the array of identificators
 =head1 TODO
 
 - mention Track::Max and Track::Min
-- store() shuld croak when error so that lines will be not missing
+- store() shuld croak when error so that lines will be not missing, so should the loading
 - ident_list() should return number of non undef rows in scalar context
 - strategy for Track ->new({ strategy => sub { $a > $b } })
 - then rewrite max/min to use it this way
+- method csv_line_of($ident) that will return csv line for the identificator
 
 =head1 SEE ALSO
 
@@ -116,7 +129,7 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-our $VERSION = '0.2';
+our $VERSION = '0.3';
 use 5.006;
 
 use strict;
@@ -127,9 +140,10 @@ __PACKAGE__->mk_accessors(
 	qw(
 		file_name
 		file_fh rh_value_of
-		lazy_init
+		_lazy_init
 		ignore_missing_file
 		full_time_lock
+		auto_store
 		_no_lock
 	)
 );
@@ -168,8 +182,14 @@ sub new {
 sub value_of {
 	my $self          = shift;
 	my $identificator = shift;
-	my $is_set = (@_ > 0 ? 1 : 0);	#get or set request depending on number of arguments
-	my $value = shift;
+	my $is_set        = 0;	#by default get
+
+	#if we have one more parameter then it is set
+	my $value;
+	if (@_ >= 1) {
+		$is_set = 1;
+		$value = \@_;
+	}
 
 	#check if we have identificator
 	return if not $identificator;
@@ -187,7 +207,16 @@ sub value_of {
 	}
 	#get
 	else {
-		return $rh_value_of->{$identificator}
+		return undef if not defined $rh_value_of->{$identificator};	
+	
+		#if we have more then one field return array
+		if (@{$rh_value_of->{$identificator}} > 1) {
+			return @{$rh_value_of->{$identificator}};
+		}
+		#otherwise return one and only value from array as scallar
+		else {
+			return ${$rh_value_of->{$identificator}}[0];
+		}
 	}
 }
 
@@ -220,12 +249,12 @@ sub store {
 	#loop through identificators and write to file
 	foreach my $identificator (sort $self->ident_list()) {
 		#combine values for csv file
-		my $value = $self->value_of($identificator);
+		my @fields = $self->value_of($identificator);
 
 		#skip removed entries
-		next if not defined $value;
+		next if (@fields == 1) and (not defined $fields[0]);
 		
-		if (not $CSV_FORMAT->combine($identificator, $value)) {
+		if (not $CSV_FORMAT->combine($identificator, @fields)) {
 			warn "invalid value to store to an csv file - ", $CSV_FORMAT->error_input(),"\n";
 			next;
 		}
@@ -241,10 +270,10 @@ sub store {
 sub _init {
 	my $self = shift;
 	
-	return if $self->{lazy_init};
+	return if $self->{_lazy_init};
 
 	#prevent from reexecuting
-	$self->{lazy_init}   = 1;
+	$self->{_lazy_init}   = 1;
 	
 	#get local variables from self hash
 	my $rh_value_of         = $self->{rh_value_of};
@@ -293,28 +322,28 @@ sub _init {
 		flock($file_fh, LOCK_SH) or croak "can't lock file '$file_name' - $OS_ERROR\n";
 	}
 
+	#create hash of identificator => 1
+	my %identificator_exist = map { $_ => 1 } $self->ident_list;
+
 	#parse lines and store values in the hash
 	LINE:
 	while (my $line = <$file_fh>) {
 		#verify line. if incorrect skip with warning
 		if (!$CSV_FORMAT->parse($line)) {
+			chomp($line);
 			warn "badly formated '$file_name' csv line ", $file_fh->input_line_number(), " - '$line'. skipping\n";
 			next LINE;
 		}
 		
 		#extract fields
-		my ($identificator, $value) = $CSV_FORMAT->fields();
+		my @fields = $CSV_FORMAT->fields();
+		my $identificator = shift @fields;
 
-		#save the value that we have now in hash
-		my $new_value = $self->value_of($identificator);
+		#skip if we already changet the value		
+		next if $identificator_exist{$identificator};
 				
 		#set the value from file
-		$self->value_of($identificator, $value);
-
-		#if we already changed this value update over it
-		if (defined $new_value) {
-			$self->value_of($identificator, $new_value);
-		}
+		$self->value_of($identificator, @fields);
 	}
 	
 	#if full time lock then store file handle
@@ -342,6 +371,9 @@ sub ident_list {
 
 sub finish {
 	my $self = shift;
+
+	#call store if in auto_store mode
+	$self->store() if $self->{auto_store};
 
 	#get local variables from self hash
 	my $file_fh = $self->{file_fh};
