@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 44 };
+BEGIN { plan tests => 45 };
 
 use Text::CSV::Track;
 
@@ -357,7 +357,7 @@ $track_object = Text::CSV::Track->new({
 	file_name    => $file_name,
 	header_lines => 3,
 });
-$track_object->value_of('123');	#triger init
+$track_object->value_of('123');	#trigger init
 is(@{$track_object->_header_lines_ra}, 3,			'we should have three header lines');
 is($track_object->ident_list, 3,						'we should have three records');
 is($track_object->value_of('123'), "jeden dva try",
@@ -368,6 +368,30 @@ $track_object = undef;
 
 my @file_lines_after = read_file($file_name);
 is_deeply(\@file_lines_after,\@file_lines,		'is the file same after store()?');
+
+
+###TEST always_quote
+#check
+$track_object = Text::CSV::Track->new({
+	file_name    => $file_name,
+	header_lines => 3,
+	always_quote => 1,
+});
+$track_object->store();
+$track_object = undef;
+
+#do always_quote "by hand"
+@file_lines = (
+	"heade line 1\n",
+	"heade line 2 $SINGLE_QUOTE, $DOUBLE_QUOTE\n",
+	"heade line 3, 333\n",
+	'"123","jeden dva try"'."\n",
+	'"321","tri dva jeden"'."\n",
+	'"unquoted","last one"'."\n",
+);
+
+@file_lines_after = read_file($file_name);
+is_deeply(\@file_lines_after,\@file_lines,		"is the file ok after 'always quote' store()?");
 
 ### CLEANUP
 

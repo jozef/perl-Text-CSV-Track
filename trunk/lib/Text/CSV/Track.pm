@@ -74,10 +74,15 @@ If setting/getting multiple columns then an array.
 		full_time_lock        => 1,
 		auto_store            => 1,
 		ignore_badly_formated => 1,
+		header_lines          => 3,
+
+		#L<Text::CSV> paramteres
 		sep_char              => q{,},
 		escape_char           => q{\\},
 		quote_char            => q{"},
-		header_lines          => 3,
+		always_quote          => 0,
+		binary                => 0,
+		type                  => undef,
 	})
 	
 All flags are optional.
@@ -97,11 +102,11 @@ If 'auto_store' is on then the store() is called when object is destroied
 If 'ignore_badly_formated_lines' in on badly formated lines from input are ignored.
 Otherwise the modules calls die.
 
-'sep_char', 'escape_char', 'quote_char' defines how the csv file is formated.
-
 'header_lines' specifies how many lines of csv are the header lines. They will
 be skipped during the reading of the file and rewritten during the storing to the
 file.
+
+See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
 
 =item value_of()
 
@@ -164,11 +169,15 @@ __PACKAGE__->mk_accessors(
 		_no_lock
 		ignore_badly_formated
 		_csv_format
+		header_lines
+		_header_lines_ra
+
 		sep_char
 		escape_char
 		quote_char
-		header_lines
-		_header_lines_ra
+		always_quote
+		binary
+		type
 	)
 );
 
@@ -315,20 +324,27 @@ sub _init {
 	my $ignore_missing_file = $self->ignore_missing_file;
 	my $full_time_lock      = $self->full_time_lock;
 	my $_no_lock            = $self->_no_lock;
+	my $header_lines_count  = $self->header_lines;
+
+	#Text::CSV variables
 	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
 	my $escape_char         = defined $self->escape_char ? $self->escape_char : q{\\};
 	my $quote_char          = defined $self->quote_char  ? $self->quote_char  : q{"};
-	my $header_lines_count = $self->header_lines;
-	
+	my $always_quote        = $self->always_quote;
+	my $binary              = $self->binary;
+	my $type                = $self->type;
 	
 	#done with initialization if file_name empty
 	return if not $file_name;
 
 	#define csv format
 	$self->_csv_format(Text::CSV->new({
-		sep_char    => $sep_char,
-		escape_char => $escape_char,
-		quote_char  => $quote_char,
+		sep_char     => $sep_char,
+		escape_char  => $escape_char,
+		quote_char   => $quote_char,
+		always_quote => $always_quote,
+		binary       => $binary,
+		type         => $type,
 	}));
 
 	#default open mode is reading
