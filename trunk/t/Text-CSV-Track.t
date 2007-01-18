@@ -3,8 +3,8 @@
 
 #########################
 
-use Test::More 'no_plan';
-#BEGIN { plan tests => 29 };
+use Test::More;	# 'no_plan';
+BEGIN { plan tests => 40 };
 
 use Text::CSV::Track;
 
@@ -18,7 +18,7 @@ use strict;
 use warnings;
 
 #constants
-my $DEVELOPMENT = 1;
+my $DEVELOPMENT = 0;
 my $MULTI_LINE_SUPPORT = 0;
 my $EMPTY_STRING = q{};
 
@@ -312,6 +312,29 @@ is_deeply(\@got, \@expected,							'multi column storing');
 $track_object->store();
 $track_object = undef;
 
+
+### TEST different separator
+
+write_file($file_name,
+	"{1|23{|{jeden; &{ dva tri'{\n",
+	"{32|1{|tri dva, jeden\"\n",
+	"unquoted|last one\n",
+);
+
+#check
+$track_object = Text::CSV::Track->new({
+	file_name => $file_name
+	, sep_char => q{|}
+	, escape_char => q{&}
+	, quote_char => q/{/
+});
+is($track_object->ident_list, 3,					  'we should have three lines');
+is($track_object->value_of('1|23'), "jeden; { dva tri'",
+																'check 1/3 line read');
+is($track_object->value_of('32|1'), 'tri dva, jeden"',
+																'check 2/3 line read');
+is($track_object->value_of('unquoted'), 'last one',
+																'check 3/3 line read');
 
 
 ### CLEANUP
