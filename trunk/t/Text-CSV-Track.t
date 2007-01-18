@@ -77,6 +77,7 @@ $OS_ERROR = undef;
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
 eval { $track_object->value_of('test1') };
 isnt($OS_ERROR, $EMPTY_STRING,						'OS ERROR if file missing');
+$track_object = undef;
 $OS_ERROR = undef;
 
 #try to read nonexisting file with ignoring on
@@ -202,12 +203,21 @@ push(@lines, qq{"aman2\n});
 push(@lines, qq{"xman3,"muhaha\n});
 write_file($file_name, sort @lines);
 
-#check
+#check if module die when badly formated line is in the file
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
+
+eval {
+	$track_object->ident_list;
+};
+isnt($EVAL_ERROR, defined,								'died with badly formated lines');
+
+
+#check ignoring of badly formated lines
+$track_object = Text::CSV::Track->new({ file_name => $file_name, ignore_badly_formated => 1 });
 
 $track_object->ident_list;
 
-is($track_object->ident_list, 100,					'was badly formated lines ignored?');
+is($track_object->ident_list, 100,					"was badly formated lines ignored with 'ignore_badly_formated => 1' ?");
 $track_object->store();
 $track_object = undef;
 

@@ -69,30 +69,38 @@ If setting/getting multiple columns then an array.
 =item new()
 
 	new({
-		file_name           => 'filename.csv',
-		ignore_missing_file => 1,
-		full_time_lock      => 1,
-		auto_store          => 1,
-		
+		file_name             => 'filename.csv',
+		ignore_missing_file   => 1,
+		full_time_lock        => 1,
+		auto_store            => 1,
+		ignore_badly_formated => 1,
+      sep_char              => q{,},
+      escape_char           => q{\\},
+      quote_char            => q{"},
 	})
 	
-all flags are optional.
+All flags are optional.
 
 'file_name' is used to read old results and then store the updated ones
 
-if 'ignore_missing_file' is set then the lib will just warn that it can not
+If 'ignore_missing_file' is set then the lib will just warn that it can not
 read the file. store() will use this name to store the results.
 
-if 'full_time_lock' is set the exclusive lock will be held until the object is
+If 'full_time_lock' is set the exclusive lock will be held until the object is
 not destroyed. use it when you need both reading the values and changing the values.
 If you need just read OR change then you don't need to set this flag. See description
 about lazy initialization.
 
-if 'auto_store' is on then the store() is called when object is destroied
+If 'auto_store' is on then the store() is called when object is destroied
+
+If 'ignore_badly_formated_lines' in on badly formated lines from input are ignored.
+Otherwise the modules calls die.
+
+'sep_char', 'escape_char', 'quote_char' defines how the csv file is formated
 
 =item value_of()
 
-is used to both store or retrieve the value. if called with one argument
+Is used to both store or retrieve the value. if called with one argument
 then it is a read. if called with two arguments then it will update the
 value. The update will be done ONLY if the supplied value is bigger.
 	
@@ -104,6 +112,10 @@ when this one is called it will write the changes back to file.
 
 will return the array of identificators
 
+=item csv_line_of($ident)
+
+Returns one line of csv for given identificator.
+
 =back
 
 =head1 TODO
@@ -113,7 +125,6 @@ will return the array of identificators
 - ident_list() should return number of non undef rows in scalar context
 - strategy for Track ->new({ strategy => sub { $a > $b } })
 - then rewrite max/min to use it this way
-- method csv_line_of($ident) that will return csv line for the identificator
 
 =head1 SEE ALSO
 
@@ -139,12 +150,18 @@ use base qw(Class::Accessor::Fast);
 __PACKAGE__->mk_accessors(
 	qw(
 		file_name
-		file_fh rh_value_of
+		_file_fh
+		_rh_value_of
 		_lazy_init
 		ignore_missing_file
 		full_time_lock
 		auto_store
 		_no_lock
+		ignore_badly_formated
+		_csv_format
+		sep_char
+		escape_char
+		quote_char		
 	)
 );
 
@@ -156,13 +173,7 @@ use English qw(-no_match_vars);
 use Fcntl ':flock'; # import LOCK_* constants
 use Fcntl ':seek';  # import SEEK_* constants
 
-#readonly defaults
 
-my $CSV_FORMAT = Text::CSV->new({
-		sep_char    => q{,},
-		escape_char => q{\\},
-		quote_char  => q{"},
-	});
 
 #new
 sub new {
@@ -173,9 +184,25 @@ sub new {
 	my $self = $class->SUPER::new($ra_arg);
 
 	#create empty hash
-	$self->{rh_value_of} = {};
+	$self->{_rh_value_of} = {};
 	
 	return $self;
+}
+
+sub csv_line_of {
+	my $self          = shift;
+	my $identificator = shift;
+
+	#combine values for csv file
+	my @fields = $self->value_of($identificator);
+
+	#removed entry
+	return undef if (@fields == 1) and (not defined $fields[0]);
+	
+	die "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
+		if (not $self->_csv_format->combine($identificator, @fields));
+	
+	return $self->_csv_format->string();
 }
 
 #get or set value
@@ -195,7 +222,7 @@ sub value_of {
 	return if not $identificator;
 	
 	#value_of hash
-	my $rh_value_of = $self->{rh_value_of};
+	my $rh_value_of = $self->{_rh_value_of};
 
 	#lazy initialization is needed for get
 	$self->_init() if not $is_set;
@@ -228,10 +255,10 @@ sub store {
 	$self->_init();
 
 	#get local variables from self hash
-	my $rh_value_of    = $self->{rh_value_of};
+	my $rh_value_of    = $self->{_rh_value_of};
 	my $file_name      = $self->{file_name};
 	my $full_time_lock = $self->{full_time_lock};
-	my $file_fh        = $self->{file_fh};
+	my $file_fh        = $self->{_file_fh};
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -248,19 +275,13 @@ sub store {
 	
 	#loop through identificators and write to file
 	foreach my $identificator (sort $self->ident_list()) {
-		#combine values for csv file
-		my @fields = $self->value_of($identificator);
+		my $csv_line = $self->csv_line_of($identificator);
 
 		#skip removed entries
-		next if (@fields == 1) and (not defined $fields[0]);
-		
-		if (not $CSV_FORMAT->combine($identificator, @fields)) {
-			warn "invalid value to store to an csv file - ", $CSV_FORMAT->error_input(),"\n";
-			next;
-		}
+		next if not $csv_line;
 		
 		#print the line to csv file
-		print {$file_fh} $CSV_FORMAT->string(), "\n";
+		print {$file_fh} $csv_line, "\n";
 	}
 	
 	close($file_fh);
@@ -276,14 +297,25 @@ sub _init {
 	$self->{_lazy_init}   = 1;
 	
 	#get local variables from self hash
-	my $rh_value_of         = $self->{rh_value_of};
+	my $rh_value_of         = $self->{_rh_value_of};
 	my $file_name           = $self->{file_name};
 	my $ignore_missing_file = $self->{ignore_missing_file};
 	my $full_time_lock      = $self->{full_time_lock};
 	my $_no_lock            = $self->{_no_lock};
+	my $sep_char            = exists $self->{sep_char}    ? $self->{sep_char} : q{,};
+	my $escape_char         = exists $self->{escape_char} ? $self->{sep_char} : q{\\};
+	my $quote_char          = exists $self->{quote_char}  ? $self->{sep_char} : q{"};
+	
 	
 	#done with initialization if file_name empty
 	return if not $file_name;
+
+	#define csv format
+	$self->_csv_format(Text::CSV->new({
+		sep_char    => $sep_char,
+		escape_char => $escape_char,
+		quote_char  => $quote_char,
+	}));
 
 	#default open mode is reading
 	my $open_mode = '<';
@@ -297,15 +329,16 @@ sub _init {
 			$open_mode = '+<';
 		}
 	}
-	
+
 	#open file with old stored values and handle error
 	my $file_fh;
 	if (not open($file_fh, $open_mode, $file_name)) {
-		if (defined $ignore_missing_file) {
+		if ($ignore_missing_file) {
+			$OS_ERROR = undef;
 			return;
 		}
 		else {
-			croak "can't read access file '$file_name' - $OS_ERROR";
+			croak "can't read file '$file_name' - $OS_ERROR";
 		}
 	}
 	
@@ -329,14 +362,21 @@ sub _init {
 	LINE:
 	while (my $line = <$file_fh>) {
 		#verify line. if incorrect skip with warning
-		if (!$CSV_FORMAT->parse($line)) {
-			chomp($line);
-			warn "badly formated '$file_name' csv line ", $file_fh->input_line_number(), " - '$line'. skipping\n";
-			next LINE;
+		if (!$self->_csv_format->parse($line)) {
+			chomp($line);			
+			my $msg = "badly formated '$file_name' csv line " . $file_fh->input_line_number() . " - '$line'.\n";
+
+			#by default die on bad line			
+			die $msg if not $self->{ignore_badly_formated};
+			
+			#if ignore_badly_formated_lines is on just print warning
+			warn $msg;
+			
+			next;
 		}
 		
 		#extract fields
-		my @fields = $CSV_FORMAT->fields();
+		my @fields = $self->_csv_format->fields();
 		my $identificator = shift @fields;
 
 		#skip if we already changet the value		
@@ -348,7 +388,7 @@ sub _init {
 	
 	#if full time lock then store file handle
 	if ($full_time_lock) {
-		$self->{file_fh} = $file_fh;
+		$self->{_file_fh} = $file_fh;
 	}
 	#otherwise release shared lock and close file
 	else {
@@ -364,7 +404,7 @@ sub ident_list {
 	$self->_init();
 
 	#get local variables from self hash
-	my $rh_value_of = $self->{rh_value_of};
+	my $rh_value_of = $self->{_rh_value_of};
 
 	return keys %{$rh_value_of};
 }
@@ -376,13 +416,13 @@ sub finish {
 	$self->store() if $self->{auto_store};
 
 	#get local variables from self hash
-	my $file_fh = $self->{file_fh};
+	my $file_fh = $self->{_file_fh};
 
-	if ($file_fh) {
+	if (defined $file_fh) {
 		close($file_fh);
 	}	
 
-	$self->{file_fh} = undef;
+	$self->{_file_fh} = undef;
 }
 
 sub DESTROY {
@@ -391,3 +431,4 @@ sub DESTROY {
 	$self->finish();	
 }
 
+1;

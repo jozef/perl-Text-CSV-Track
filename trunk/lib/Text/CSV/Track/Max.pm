@@ -58,3 +58,6 @@ sub value_of {
 		$self->SUPER::value_of($identificator, $value);
 	}
 }
+
+1;
+
