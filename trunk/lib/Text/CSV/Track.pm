@@ -379,11 +379,14 @@ sub _init {
 		my @fields = $self->_csv_format->fields();
 		my $identificator = shift @fields;
 
-		#skip if we already changet the value		
-		next if $identificator_exist{$identificator};
+		#save present fields
+		my @old_fields = $self->value_of($identificator);
 				
 		#set the value from file
 		$self->value_of($identificator, @fields);
+
+		#set the value from before values from file was read !needed becouse of the strategy!
+		$self->value_of($identificator, @old_fields) if $identificator_exist{$identificator};
 	}
 	
 	#if full time lock then store file handle
