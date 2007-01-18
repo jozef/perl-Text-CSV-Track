@@ -74,9 +74,10 @@ If setting/getting multiple columns then an array.
 		full_time_lock        => 1,
 		auto_store            => 1,
 		ignore_badly_formated => 1,
-      sep_char              => q{,},
-      escape_char           => q{\\},
-      quote_char            => q{"},
+		sep_char              => q{,},
+		escape_char           => q{\\},
+		quote_char            => q{"},
+		header_lines          => 3,
 	})
 	
 All flags are optional.
@@ -96,7 +97,11 @@ If 'auto_store' is on then the store() is called when object is destroied
 If 'ignore_badly_formated_lines' in on badly formated lines from input are ignored.
 Otherwise the modules calls die.
 
-'sep_char', 'escape_char', 'quote_char' defines how the csv file is formated
+'sep_char', 'escape_char', 'quote_char' defines how the csv file is formated.
+
+'header_lines' specifies how many lines of csv are the header lines. They will
+be skipped during the reading of the file and rewritten during the storing to the
+file.
 
 =item value_of()
 
@@ -120,15 +125,15 @@ Returns one line of csv for given identificator.
 
 =head1 TODO
 
-- mention Track::Max and Track::Min
-- store() shuld croak when error so that lines will be not missing, so should the loading
-- ident_list() should return number of non undef rows in scalar context
-- strategy for Track ->new({ strategy => sub { $a > $b } })
-- then rewrite max/min to use it this way
+	- mention Track::Max and Track::Min
+	- ident_list() should return number of non undef rows in scalar context
+	- strategy for Track ->new({ strategy => sub { $a > $b } })
+	- then rewrite max/min to use it this way
+	- different column as the first one as identiffier column
 
 =head1 SEE ALSO
 
-SVN repository - L<http://svn.cle.sk/svn/cpan/Text-CSV-Track/>
+L<Text::CSV::Trac::Max>, L<Text::CSV::Trac::Min>, SVN repository - L<http://svn.cle.sk/svn/pub/cpan/Text-CSV-Track/>
 
 =head1 AUTHOR
 
@@ -162,6 +167,8 @@ __PACKAGE__->mk_accessors(
 		sep_char
 		escape_char
 		quote_char
+		header_lines
+		_header_lines_ra
 	)
 );
 
@@ -184,7 +191,8 @@ sub new {
 	my $self = $class->SUPER::new($ra_arg);
 
 	#create empty hash
-	$self->{_rh_value_of} = {};
+	$self->{_rh_value_of}     = {};
+	$self->{_header_lines_ra} = [];
 	
 	return $self;
 }
@@ -272,6 +280,11 @@ sub store {
 	
 	#truncate the file so that we can store new results
 	truncate($file_fh, 0) or croak "can't truncate file '$file_name' - $OS_ERROR\n";
+
+	#write header lines
+	foreach my $header_line (@{$self->_header_lines_ra}) {
+		print {$file_fh} $header_line;
+	}
 	
 	#loop through identificators and write to file
 	foreach my $identificator (sort $self->ident_list()) {
@@ -305,6 +318,7 @@ sub _init {
 	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
 	my $escape_char         = defined $self->escape_char ? $self->escape_char : q{\\};
 	my $quote_char          = defined $self->quote_char  ? $self->quote_char  : q{"};
+	my $header_lines_count = $self->header_lines;
 	
 	
 	#done with initialization if file_name empty
@@ -361,6 +375,17 @@ sub _init {
 	#parse lines and store values in the hash
 	LINE:
 	while (my $line = <$file_fh>) {
+		#skip header lines and save them for store()
+		if ($header_lines_count) {
+			#save push header line
+			push(@{$self->_header_lines_ra}, $line);
+			
+			#decrease header lines code so then we will know when there is an end of headers
+			$header_lines_count--;
+			
+			next;
+		}
+	
 		#verify line. if incorrect skip with warning
 		if (!$self->_csv_format->parse($line)) {
 			chomp($line);			

@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 40 };
+BEGIN { plan tests => 44 };
 
 use Text::CSV::Track;
 
@@ -21,6 +21,8 @@ use warnings;
 my $DEVELOPMENT = 0;
 my $MULTI_LINE_SUPPORT = 0;
 my $EMPTY_STRING = q{};
+my $SINGLE_QUOTE = q{'};
+my $DOUBLE_QUOTE = q{"};
 
 ok(1,															'all required modules loaded'); # If we made it this far, we're ok.
 
@@ -328,7 +330,7 @@ $track_object = Text::CSV::Track->new({
 	, escape_char => q{&}
 	, quote_char => q/{/
 });
-is($track_object->ident_list, 3,					  'we should have three lines');
+is($track_object->ident_list, 3,						'we should have three records');
 is($track_object->value_of('1|23'), "jeden; { dva tri'",
 																'check 1/3 line read');
 is($track_object->value_of('32|1'), 'tri dva, jeden"',
@@ -336,6 +338,36 @@ is($track_object->value_of('32|1'), 'tri dva, jeden"',
 is($track_object->value_of('unquoted'), 'last one',
 																'check 3/3 line read');
 
+
+### TEST skipping of header lines
+
+my @file_lines = (
+	"heade line 1\n",
+	"heade line 2 $SINGLE_QUOTE, $DOUBLE_QUOTE\n",
+	"heade line 3, 333\n",
+	"123,\"jeden dva try\"\n",
+	"321,\"tri dva jeden\"\n",
+	"unquoted,\"last one\"\n",
+);
+
+write_file($file_name, @file_lines);
+
+#check
+$track_object = Text::CSV::Track->new({
+	file_name    => $file_name,
+	header_lines => 3,
+});
+$track_object->value_of('123');	#triger init
+is(@{$track_object->_header_lines_ra}, 3,			'we should have three header lines');
+is($track_object->ident_list, 3,						'we should have three records');
+is($track_object->value_of('123'), "jeden dva try",
+																'check first line read');
+#save back the file
+$track_object->store();
+$track_object = undef;
+
+my @file_lines_after = read_file($file_name);
+is_deeply(\@file_lines_after,\@file_lines,		'is the file same after store()?');
 
 ### CLEANUP
 
