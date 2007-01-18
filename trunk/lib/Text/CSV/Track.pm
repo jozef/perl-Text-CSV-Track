@@ -161,7 +161,7 @@ __PACKAGE__->mk_accessors(
 		_csv_format
 		sep_char
 		escape_char
-		quote_char		
+		quote_char
 	)
 );
 
@@ -222,7 +222,7 @@ sub value_of {
 	return if not $identificator;
 	
 	#value_of hash
-	my $rh_value_of = $self->{_rh_value_of};
+	my $rh_value_of = $self->_rh_value_of;
 
 	#lazy initialization is needed for get
 	$self->_init() if not $is_set;
@@ -255,10 +255,10 @@ sub store {
 	$self->_init();
 
 	#get local variables from self hash
-	my $rh_value_of    = $self->{_rh_value_of};
-	my $file_name      = $self->{file_name};
-	my $full_time_lock = $self->{full_time_lock};
-	my $file_fh        = $self->{_file_fh};
+	my $rh_value_of    = $self->_rh_value_of;
+	my $file_name      = $self->file_name;
+	my $full_time_lock = $self->full_time_lock;
+	my $file_fh        = $self->_file_fh;
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -291,20 +291,20 @@ sub store {
 sub _init {
 	my $self = shift;
 	
-	return if $self->{_lazy_init};
+	return if $self->_lazy_init;
 
 	#prevent from reexecuting
-	$self->{_lazy_init}   = 1;
+	$self->_lazy_init(1);
 	
 	#get local variables from self hash
-	my $rh_value_of         = $self->{_rh_value_of};
-	my $file_name           = $self->{file_name};
-	my $ignore_missing_file = $self->{ignore_missing_file};
-	my $full_time_lock      = $self->{full_time_lock};
-	my $_no_lock            = $self->{_no_lock};
-	my $sep_char            = exists $self->{sep_char}    ? $self->{sep_char} : q{,};
-	my $escape_char         = exists $self->{escape_char} ? $self->{sep_char} : q{\\};
-	my $quote_char          = exists $self->{quote_char}  ? $self->{sep_char} : q{"};
+	my $rh_value_of         = $self->_rh_value_of;
+	my $file_name           = $self->file_name;
+	my $ignore_missing_file = $self->ignore_missing_file;
+	my $full_time_lock      = $self->full_time_lock;
+	my $_no_lock            = $self->_no_lock;
+	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
+	my $escape_char         = defined $self->escape_char ? $self->escape_char : q{\\};
+	my $quote_char          = defined $self->quote_char  ? $self->quote_char  : q{"};
 	
 	
 	#done with initialization if file_name empty
@@ -367,7 +367,7 @@ sub _init {
 			my $msg = "badly formated '$file_name' csv line " . $file_fh->input_line_number() . " - '$line'.\n";
 
 			#by default die on bad line			
-			die $msg if not $self->{ignore_badly_formated};
+			die $msg if not $self->ignore_badly_formated;
 			
 			#if ignore_badly_formated_lines is on just print warning
 			warn $msg;
@@ -388,7 +388,7 @@ sub _init {
 	
 	#if full time lock then store file handle
 	if ($full_time_lock) {
-		$self->{_file_fh} = $file_fh;
+		$self->_file_fh($file_fh);
 	}
 	#otherwise release shared lock and close file
 	else {
@@ -404,7 +404,7 @@ sub ident_list {
 	$self->_init();
 
 	#get local variables from self hash
-	my $rh_value_of = $self->{_rh_value_of};
+	my $rh_value_of = $self->_rh_value_of;
 
 	return keys %{$rh_value_of};
 }
@@ -413,16 +413,16 @@ sub finish {
 	my $self = shift;
 
 	#call store if in auto_store mode
-	$self->store() if $self->{auto_store};
+	$self->store() if $self->auto_store;
 
 	#get local variables from self hash
-	my $file_fh = $self->{_file_fh};
+	my $file_fh = $self->_file_fh;
 
 	if (defined $file_fh) {
 		close($file_fh);
 	}	
 
-	$self->{_file_fh} = undef;
+	$self->_file_fh(undef);
 }
 
 sub DESTROY {
