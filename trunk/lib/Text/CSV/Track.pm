@@ -151,6 +151,7 @@ Returns one line of csv for given identificator.
 	- then rewrite max/min to use it this way
 	- different column as the first one as identiffier column
 	- hash_of set functionality
+	- constraints for columns
 
 =head1 SEE ALSO
 
