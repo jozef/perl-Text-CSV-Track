@@ -33,6 +33,14 @@ This documentation refers to version 0.3.
 		print "$login\n";
 	}
 
+	#getting muticolumn by hash
+	$track_object = Text::CSV::Track->new({
+		file_name    => $file_name
+		, hash_names => [ qw{ col coool } ]
+	});
+	my %hash = $track_object->hash_of('ident');
+	print "second column is: ", $hash{'coool'}, "\n";
+
 =head1 DESCRIPTION
 
 The module manipulates csv file:
@@ -75,6 +83,7 @@ If setting/getting multiple columns then an array.
 		auto_store            => 1,
 		ignore_badly_formated => 1,
 		header_lines          => 3,
+		hash_names            => [ qw{ column1 column2 }  ],
 
 		#L<Text::CSV> paramteres
 		sep_char              => q{,},
@@ -100,11 +109,13 @@ about lazy initialization.
 If 'auto_store' is on then the store() is called when object is destroied
 
 If 'ignore_badly_formated_lines' in on badly formated lines from input are ignored.
-Otherwise the modules calls die.
+Otherwise the modules calls croak.
 
 'header_lines' specifies how many lines of csv are the header lines. They will
 be skipped during the reading of the file and rewritten during the storing to the
 file.
+
+'hash_names' specifies hash names fro hash_of() function.
 
 See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
 
@@ -113,7 +124,11 @@ See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'b
 Is used to both store or retrieve the value. if called with one argument
 then it is a read. if called with two arguments then it will update the
 value. The update will be done ONLY if the supplied value is bigger.
-	
+
+=item hash_of()
+
+Returns hash of values. Names for the hash values are taken from hash_names parameter.
+
 =item store()
 
 when this one is called it will write the changes back to file.
@@ -135,6 +150,7 @@ Returns one line of csv for given identificator.
 	- strategy for Track ->new({ strategy => sub { $a > $b } })
 	- then rewrite max/min to use it this way
 	- different column as the first one as identiffier column
+	- hash_of set functionality
 
 =head1 SEE ALSO
 
@@ -171,6 +187,7 @@ __PACKAGE__->mk_accessors(
 		_csv_format
 		header_lines
 		_header_lines_ra
+		hash_names
 
 		sep_char
 		escape_char
@@ -216,7 +233,7 @@ sub csv_line_of {
 	#removed entry
 	return undef if (@fields == 1) and (not defined $fields[0]);
 	
-	die "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
+	croak "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
 		if (not $self->_csv_format->combine($identificator, @fields));
 	
 	return $self->_csv_format->string();
@@ -262,6 +279,32 @@ sub value_of {
 			return ${$rh_value_of->{$identificator}}[0];
 		}
 	}
+}
+
+sub hash_of {
+	my $self          = shift;
+	my $identificator = shift;
+	my $is_set        = 0;	#by default get
+
+	croak "'hash_names' parameter not set" if not defined $self->hash_names;
+	my @hash_names    = @{$self->hash_names};
+
+	#if we have one more parameter then it is set
+	my $value;
+	if (@_ >= 1) {
+		$is_set = 1;
+		$value = \@_;
+	}
+	
+	croak "set 'hash_of' not implemented" if $is_set;
+	
+	my %hash;
+	my @fields = $self->value_of($identificator);
+	foreach my $name (@hash_names) {
+		$hash{$name} = shift @fields;
+	}
+	
+	return %hash;
 }
 
 #save back changes 
@@ -407,8 +450,8 @@ sub _init {
 			chomp($line);			
 			my $msg = "badly formated '$file_name' csv line " . $file_fh->input_line_number() . " - '$line'.\n";
 
-			#by default die on bad line			
-			die $msg if not $self->ignore_badly_formated;
+			#by default croak on bad line			
+			croak $msg if not $self->ignore_badly_formated;
 			
 			#if ignore_badly_formated_lines is on just print warning
 			warn $msg;

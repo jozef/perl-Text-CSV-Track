@@ -6,7 +6,8 @@ Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
 	- ignore_badly_formated option added
 	- csv_line_of($ident) method added
 	- formating of csv can be defined
-	- header lines support
+	- header lines support added
+	- hash_of() added
 
 0.2   Jan 02 2007
 	- typing errors in comments corrected

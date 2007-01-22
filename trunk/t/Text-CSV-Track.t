@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 45 };
+BEGIN { plan tests => 47 };
 
 use Text::CSV::Track;
 
@@ -305,6 +305,7 @@ close($fh);
 #store one value
 $track_object = Text::CSV::Track->new({ file_name => $file_name, ignore_missing_file => 1 });
 $track_object->value_of('multi test1', 123, 321);
+$track_object->value_of('multi test2', 222, 111);
 is($track_object->value_of('multi test1'), 2,			'multi column storing in scalar context number of records');
 
 my @got = $track_object->value_of('multi test1');
@@ -312,6 +313,18 @@ my @expected = (123, 321);
 is_deeply(\@got, \@expected,							'multi column storing');
 
 $track_object->store();
+$track_object = undef;
+
+#hash_of() tests
+$track_object = Text::CSV::Track->new({
+	file_name    => $file_name
+	, hash_names => [ qw{ col coool } ]
+});
+my %hash = $track_object->hash_of('multi test2');
+is($hash{'coool'}, 111,									'get the second column by name');
+%hash = $track_object->hash_of('multi test1');
+is($hash{'col'}, 123,									'get the first column from different row by name');
+
 $track_object = undef;
 
 
