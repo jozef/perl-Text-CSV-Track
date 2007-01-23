@@ -84,6 +84,7 @@ If setting/getting multiple columns then an array.
 		ignore_badly_formated => 1,
 		header_lines          => 3,
 		hash_names            => [ qw{ column1 column2 }  ],
+		single_column         => 1,
 
 		#L<Text::CSV> paramteres
 		sep_char              => q{,},
@@ -116,6 +117,10 @@ be skipped during the reading of the file and rewritten during the storing to th
 file.
 
 'hash_names' specifies hash names fro hash_of() function.
+
+'single_column' files that store just the identificator for line. In this case during the read
+1 is set as the second column. During store that one is dropped so single column will be stored
+back.
 
 See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
 
@@ -189,6 +194,7 @@ __PACKAGE__->mk_accessors(
 		header_lines
 		_header_lines_ra
 		hash_names
+		single_column
 
 		sep_char
 		escape_char
@@ -233,6 +239,9 @@ sub csv_line_of {
 
 	#removed entry
 	return undef if (@fields == 1) and (not defined $fields[0]);
+
+	#if in single column mode remove '1' from the start of the fields
+	shift(@fields) if $self->single_column;
 	
 	croak "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
 		if (not $self->_csv_format->combine($identificator, @fields));
@@ -463,6 +472,9 @@ sub _init {
 		#extract fields
 		my @fields = $self->_csv_format->fields();
 		my $identificator = shift @fields;
+		
+		#if in single column mode insert '1' to the fields
+		unshift(@fields, 1) if $self->single_column;
 
 		#save present fields
 		my @old_fields = $self->value_of($identificator);

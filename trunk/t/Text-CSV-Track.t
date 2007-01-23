@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 47 };
+BEGIN { plan tests => 51 };
 
 use Text::CSV::Track;
 
@@ -31,6 +31,8 @@ ok(1,															'all required modules loaded'); # If we made it this far, we
 
 ### TEST WITHOUT FILE MANIPULATION
 
+print "testing without file manipulation\n";
+
 #creation of object
 my $track_object = Text::CSV::Track->new();
 ok(defined $track_object,								'object creation');
@@ -54,6 +56,8 @@ is(scalar grep (defined $track_object->value_of($_), $track_object->ident_list()
 
 ### TESTS WITH NEW FILE
 # and no full time locking
+
+print "testing with new file\n";
 
 #generate temp file name
 my $tmp_template = 'text-csv-track-XXXXXX';
@@ -102,6 +106,9 @@ is($OS_ERROR, $EMPTY_STRING,							"no OS ERROR while saveing to '$file_name'");
 $track_object = undef;
 
 ### TEST WITH GENERATED FILE
+
+print "test with generated file\n";
+
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
 is($track_object->ident_list, 100,					'has 100 elements after read');
 my $ident = 'test value 23';
@@ -167,6 +174,9 @@ $track_object = undef;
 
 ###
 # MESS UP WITH FILE
+
+print "test with messed up file\n";
+
 my @lines = read_file($file_name);
 
 #add one more line and reverse sort
@@ -229,6 +239,7 @@ is_deeply(\@lines, \@bckup_lines,					'compare if now the values are the same as
 
 
 ### TWO PROCESSES WRITTING AT ONCE
+print "test with two processes writing at once\n";
 
 #do change in first process
 $track_object  = Text::CSV::Track->new({ file_name => $file_name });
@@ -278,6 +289,7 @@ is($track_object->value_of('atonce2'), '2nd 234',	'does atonce2 has the right va
 
 
 ### TEST LOCKING
+print "test file locking\n";
 
 #open with full time locking
 $track_object = Text::CSV::Track->new({ file_name => $file_name, full_time_lock => 1 });
@@ -302,6 +314,8 @@ close($fh);
 
 
 ### TEST multi column tracking
+print "test with multi column files\n";
+
 #store one value
 $track_object = Text::CSV::Track->new({ file_name => $file_name, ignore_missing_file => 1 });
 $track_object->value_of('multi test1', 123, 321);
@@ -329,6 +343,7 @@ $track_object = undef;
 
 
 ### TEST different separator
+print "test different separators\n";
 
 write_file($file_name,
 	"{1|23{|{jeden; &{ dva tri'{\n",
@@ -353,6 +368,7 @@ is($track_object->value_of('unquoted'), 'last one',
 
 
 ### TEST skipping of header lines
+print "test file with header lines\n";
 
 my @file_lines = (
 	"heade line 1\n",
@@ -384,6 +400,7 @@ is_deeply(\@file_lines_after,\@file_lines,		'is the file same after store()?');
 
 
 ###TEST always_quote
+print "test always quote\n";
 #check
 $track_object = Text::CSV::Track->new({
 	file_name    => $file_name,
@@ -405,6 +422,48 @@ $track_object = undef;
 
 @file_lines_after = read_file($file_name);
 is_deeply(\@file_lines_after,\@file_lines,		"is the file ok after 'always quote' store()?");
+
+
+###
+# single column files
+print "test single column files tracking\n";
+
+@file_lines = (
+	"line1\n",
+	"line2\n",
+	"line3\n",
+	"123\n",
+	"321\n",
+	"unquoted\n",
+);
+write_file($file_name, @file_lines);
+
+$track_object = Text::CSV::Track->new({
+	file_name     => $file_name,
+	single_column => 1,
+});
+is($track_object->ident_list, 6,						'we should have six records');
+ok($track_object->value_of(123),						'check one records');
+is($track_object->value_of(1234), undef,			'check record not there');
+
+$track_object->value_of(123, undef);				#remove one
+$track_object->value_of(1234, 1);					#add one
+
+$track_object->store();
+$track_object = undef;
+
+
+@file_lines = (
+	"1234\n",
+	"321\n",
+	"line1\n",
+	"line2\n",
+	"line3\n",
+	"unquoted\n",
+);
+@file_lines_after = read_file($file_name);
+is_deeply(\@file_lines_after,\@file_lines,		"check single quote file after store");
+
 
 ### CLEANUP
 
