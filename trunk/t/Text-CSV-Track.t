@@ -334,9 +334,9 @@ $track_object = Text::CSV::Track->new({
 	file_name    => $file_name
 	, hash_names => [ qw{ col coool } ]
 });
-my %hash = $track_object->hash_of('multi test2');
+my %hash = %{$track_object->hash_of('multi test2')};
 is($hash{'coool'}, 111,									'get the second column by name');
-%hash = $track_object->hash_of('multi test1');
+%hash = %{$track_object->hash_of('multi test1')};
 is($hash{'col'}, 123,									'get the first column from different row by name');
 
 $track_object = undef;

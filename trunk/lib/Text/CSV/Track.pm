@@ -38,7 +38,7 @@ This documentation refers to version 0.3.
 		file_name    => $file_name
 		, hash_names => [ qw{ col coool } ]
 	});
-	my %hash = $track_object->hash_of('ident');
+	my %hash = %{$track_object->hash_of('ident')};
 	print "second column is: ", $hash{'coool'}, "\n";
 
 =head1 DESCRIPTION
@@ -314,7 +314,7 @@ sub hash_of {
 		$hash{$name} = shift @fields;
 	}
 	
-	return %hash;
+	return \%hash;
 }
 
 #save back changes 
