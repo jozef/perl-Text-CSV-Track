@@ -1,0 +1,20 @@
+Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
+
+0.3   Jan 18 2007
+	- multi column csv support for Track
+	- fixed bug with deleting field while lazy initialization was not trigered
+	- ignore_badly_formated option added
+	- csv_line_of($ident) method added
+	- formating of csv can be defined
+	- header lines support added
+	- hash_of() added
+	- single column files tracking support
+
+0.2   Jan 02 2007
+	- typing errors in comments corrected
+	- prerequisities changed no more Class::Accessor::Fast => 0.22 (it was there by exident)
+	- small cleanup
+	- todo list added
+
+0.1   Dec 29 2006
+	- created to track answer from survey
