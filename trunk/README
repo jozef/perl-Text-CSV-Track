@@ -1,4 +1,4 @@
-Text-CSV-TrackMAX version 0.01
+Text-CSV-Track version 0.4
 ==============================
 
 The README is used to introduce the module and provide instructions on
@@ -25,11 +25,9 @@ DEPENDENCIES
 
 This module requires these other modules and libraries:
 
-  blah blah blah
+  see Makefile.PL
 
 COPYRIGHT AND LICENCE
-
-Put the correct copyright and licence information here.
 
 Copyright (C) 2006 by Jozef Kutej
 
