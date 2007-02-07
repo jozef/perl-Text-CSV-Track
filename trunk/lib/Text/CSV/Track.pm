@@ -4,7 +4,7 @@ Text::CSV::Track - module to work with .csv file that stores some value(s) per i
 
 =head1 VERSION
 
-This documentation refers to version 0.3. 
+This documentation refers to version 0.4. 
 
 =head1 SYNOPSIS
 
@@ -85,6 +85,7 @@ If setting/getting multiple columns then an array.
 		header_lines          => 3,
 		hash_names            => [ qw{ column1 column2 }  ],
 		single_column         => 1,
+		trunc                 => 1,
 
 		#L<Text::CSV> paramteres
 		sep_char              => q{,},
@@ -121,6 +122,8 @@ file.
 'single_column' files that store just the identificator for line. In this case during the read
 1 is set as the second column. During store that one is dropped so single column will be stored
 back.
+
+'trunc' don't read previous file values. Header lines will persist.
 
 See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
 
@@ -172,7 +175,7 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-our $VERSION = '0.3';
+our $VERSION = '0.4';
 use 5.006;
 
 use strict;
@@ -195,6 +198,7 @@ __PACKAGE__->mk_accessors(
 		_header_lines_ra
 		hash_names
 		single_column
+		trunc
 
 		sep_char
 		escape_char
@@ -454,6 +458,9 @@ sub _init {
 			
 			next;
 		}
+		
+		#skip reading of values if in 'trunc' mode
+		last if $self->trunc;
 	
 		#verify line. if incorrect skip with warning
 		if (!$self->_csv_format->parse($line)) {
