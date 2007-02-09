@@ -333,6 +333,7 @@ sub store {
 	my $file_name      = $self->file_name;
 	my $full_time_lock = $self->full_time_lock;
 	my $file_fh        = $self->_file_fh;
+	my $header_lines   = $self->header_lines;
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -350,6 +351,13 @@ sub store {
 	#write header lines
 	foreach my $header_line (@{$self->_header_lines_ra}) {
 		print {$file_fh} $header_line;
+		$header_lines--;
+	}
+	
+	#if there are some missing lines then add empty ones
+	while ($header_lines) {
+		print {$file_fh} "\n";
+		$header_lines--;
 	}
 	
 	#loop through identificators and write to file

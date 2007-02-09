@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 53 };
+BEGIN { plan tests => 55 };
 
 use Text::CSV::Track;
 
@@ -399,7 +399,6 @@ my @file_lines_after = read_file($file_name);
 is_deeply(\@file_lines_after,\@file_lines,		'is the file same after store()?');
 
 #check trunc mode
-print "test trunc with headers\n";
 $track_object = Text::CSV::Track->new({
 	file_name    => $file_name,
 	header_lines => 3,
@@ -411,6 +410,26 @@ $track_object->store();
 
 @file_lines_after = read_file($file_name);
 is(@file_lines_after , 4,								'we should have 3+1 lines in file');
+
+#test header lines and empty file
+unlink($file_name);
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+	ignore_missing_file => 1,
+});
+$track_object->value_of('123','try 123');
+$track_object->store();
+@file_lines_after = read_file($file_name);
+is(@file_lines_after , 4,								'we should have 3+1 empty lines + one value in new file created');
+
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+	ignore_missing_file => 1,
+});
+is($track_object->value_of('123') , 'try 123',	'check the one stored value');
+
 
 #restore file
 write_file($file_name, @file_lines);
