@@ -44,6 +44,13 @@ This documentation refers to version 0.4.
 	#setting multicolumn by hash
 	$track_object->hash_of('ident2', { coool => 333 } );
 
+	#header lines
+	$track_object = Text::CSV::Track->new({
+		file_name           => $file_name,
+		header_lines        => \@header_lines,
+		ignore_missing_file => 1,
+	});
+
 =head1 DESCRIPTION
 
 The module manipulates csv file:
@@ -118,7 +125,7 @@ Otherwise the modules calls croak.
 
 'header_lines' specifies how many lines of csv are the header lines. They will
 be skipped during the reading of the file and rewritten during the storing to the
-file.
+file. Optionaly you can set array of header lines.
 
 'hash_names' specifies hash names fro hash_of() function.
 
@@ -349,11 +356,7 @@ sub store {
 	my $file_name          = $self->file_name;
 	my $full_time_lock     = $self->full_time_lock;
 	my $file_fh            = $self->_file_fh;
-	my $header_lines_count = (
-		ref $self->header_lines eq 'ARRAY'
-		? scalar @{$self->header_lines}
-		: $self->header_lines
-	);
+	my $header_lines_count = scalar @{$self->_header_lines_ra};
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -370,7 +373,7 @@ sub store {
 
 	#write header lines
 	foreach my $header_line (@{$self->_header_lines_ra}) {
-		print {$file_fh} $header_line;
+		print {$file_fh} $header_line, "\n";
 		$header_lines_count--;
 	}
 	
@@ -485,10 +488,11 @@ sub _init {
 	#parse lines and store values in the hash
 	LINE:
 	while (my $line = <$file_fh>) {
+		chomp($line);			
 		#skip header lines and save them for store()
 		if ($header_lines_count) {
-			#save push header line
-			push(@{$self->_header_lines_ra}, $line);
+			#save header line if not defined
+			push(@{$self->_header_lines_ra}, $line) if ref $self->header_lines ne 'ARRAY';;
 			
 			#decrease header lines code so then we will know when there is an end of headers
 			$header_lines_count--;
@@ -501,7 +505,6 @@ sub _init {
 	
 		#verify line. if incorrect skip with warning
 		if (!$self->_csv_format->parse($line)) {
-			chomp($line);			
 			my $msg = "badly formated '$file_name' csv line " . $file_fh->input_line_number() . " - '$line'.\n";
 
 			#by default croak on bad line			

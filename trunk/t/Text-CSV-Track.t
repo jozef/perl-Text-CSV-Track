@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 62 };
+BEGIN { plan tests => 63 };
 
 use Text::CSV::Track;
 
@@ -442,9 +442,9 @@ is(@file_lines_after , 4,								'we should have 3+1 lines in file');
 #test header lines and empty file
 unlink($file_name);
 my @header_lines = (
-	"heade line 1\n",
-	"heade line 2\n",
-	"heade line 3\n",
+	"header line 1",
+	"header line 2",
+	"header line 3",
 );
 $track_object = Text::CSV::Track->new({
 	file_name           => $file_name,
@@ -464,12 +464,34 @@ $track_object = Text::CSV::Track->new({
 is($track_object->value_of('123') , 'try 123',	'check the one stored value');
 
 my $file_content = read_file($file_name);
-my $file_content_expected = 'heade line 1
-heade line 2
-heade line 3
+my $file_content_expected = 'header line 1
+header line 2
+header line 3
 123,"try 123"
 ';
 is($file_content, $file_content_expected,			'check file with forced header lines');
+
+print "changing header lines\n";
+my @header_lines = (
+	"header line 1",
+	"header line 2",
+	"header line 33",
+);
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => \@header_lines,
+	ignore_missing_file => 1,
+});
+$track_object->value_of('321','try 321');
+$track_object->store();
+my $file_content = read_file($file_name);
+my $file_content_expected = 'header line 1
+header line 2
+header line 33
+123,"try 123"
+321,"try 321"
+';
+is($file_content, $file_content_expected,			'check file with changed forced header lines');
 
 #restore file
 write_file($file_name, @file_lines);
