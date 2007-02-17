@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 60 };
+BEGIN { plan tests => 61 };
 
 use Text::CSV::Track;
 
@@ -360,6 +360,12 @@ $track_object->hash_of('multi test3', { coool => 333, ro => 555 } );
 is($hash{'ga'}, 654,										'check first column (after single column hash set)');
 is($hash{'coool'}, 333,									'check the second column (after single column hash set)');
 is($hash{'ro'}, 555,										'check the second column (after single column hash set)');
+
+eval {
+	$track_object->hash_of('multi test3', { cooolxx => 333, ro => 555 } );
+};
+ok($EVAL_ERROR,											'setting unknown column should error - '.$EVAL_ERROR);
+$EVAL_ERROR = undef;
 
 $track_object = undef;
 
