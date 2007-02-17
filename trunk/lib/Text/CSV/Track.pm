@@ -204,7 +204,6 @@ __PACKAGE__->mk_accessors(
 		ignore_badly_formated
 		_csv_format
 		header_lines
-		_header_lines_ra
 		hash_names
 		single_column
 		trunc
@@ -233,13 +232,13 @@ sub new {
 	my $class  = shift;
 	my $ra_arg = shift;
 
+	#create empty pointers
+	$self->{_rh_value_of}     = {};
+	$self->{header_lines} = [];
+	
 	#build object from parent
 	my $self = $class->SUPER::new($ra_arg);
 
-	#create empty hash
-	$self->{_rh_value_of}     = {};
-	$self->{_header_lines_ra} = [];
-	
 	return $self;
 }
 
@@ -356,7 +355,7 @@ sub store {
 	my $file_name          = $self->file_name;
 	my $full_time_lock     = $self->full_time_lock;
 	my $file_fh            = $self->_file_fh;
-	my $header_lines_count = scalar @{$self->_header_lines_ra};
+	my $header_lines_count = scalar @{$self->header_lines};
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -372,7 +371,7 @@ sub store {
 	truncate($file_fh, 0) or croak "can't truncate file '$file_name' - $OS_ERROR\n";
 
 	#write header lines
-	foreach my $header_line (@{$self->_header_lines_ra}) {
+	foreach my $header_line (@{$self->header_lines}) {
 		print {$file_fh} $header_line, "\n";
 		$header_lines_count--;
 	}
@@ -417,12 +416,8 @@ sub _init {
 		? scalar @{$self->header_lines}
 		: $self->header_lines
 	);
-
-	#if header lines set from command line save them
-	if ((ref $self->header_lines eq 'ARRAY') and (scalar @{$self->_header_lines_ra} == 0)) {
-		@{$self->_header_lines_ra} = @{$self->header_lines}
-	}
-
+	my $header_lines_from_file = (ref $self->header_lines eq 'ARRAY' ? 0 : 1);
+ 
 	#Text::CSV variables
 	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
 	my $escape_char         = defined $self->escape_char ? $self->escape_char : q{\\};
@@ -492,7 +487,7 @@ sub _init {
 		#skip header lines and save them for store()
 		if ($header_lines_count) {
 			#save header line if not defined
-			push(@{$self->_header_lines_ra}, $line) if ref $self->header_lines ne 'ARRAY';;
+			push(@{$self->header_lines}, $line) if $header_lines_from_file;
 			
 			#decrease header lines code so then we will know when there is an end of headers
 			$header_lines_count--;
