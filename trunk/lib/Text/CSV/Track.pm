@@ -41,6 +41,9 @@ This documentation refers to version 0.4.
 	my %hash = %{$track_object->hash_of('ident')};
 	print "second column is: ", $hash{'coool'}, "\n";
 
+	#setting multicolumn by hash
+	$track_object->hash_of('ident2', { coool => 333 } );
+
 =head1 DESCRIPTION
 
 The module manipulates csv file:
@@ -158,7 +161,6 @@ Returns one line of csv for given identificator.
 	- strategy for Track ->new({ strategy => sub { $a > $b } })
 	- then rewrite max/min to use it this way
 	- different column as the first one as identiffier column
-	- hash_of set functionality
 	- constraints for columns
 
 =head1 SEE ALSO
@@ -216,7 +218,7 @@ use Carp::Clan;
 use English qw(-no_match_vars);
 use Fcntl ':flock'; # import LOCK_* constants
 use Fcntl ':seek';  # import SEEK_* constants
-
+use List::MoreUtils qw { first_index };
 
 
 #new
@@ -302,23 +304,37 @@ sub hash_of {
 
 	croak "'hash_names' parameter not set" if not defined $self->hash_names;
 	my @hash_names    = @{$self->hash_names};
+	my @fields = $self->value_of($identificator);
 
 	#if we have one more parameter then it is set
-	my $value;
+	my $rh;
 	if (@_ >= 1) {
 		$is_set = 1;
-		$value = \@_;
+		$rh     = shift;
+		
+		croak "not a hash reference as set argument" if ref $rh ne 'HASH';
 	}
 	
-	croak "set 'hash_of' not implemented" if $is_set;
-	
-	my %hash;
-	my @fields = $self->value_of($identificator);
-	foreach my $name (@hash_names) {
-		$hash{$name} = shift @fields;
+	if ($is_set) {
+		foreach my $key (keys %{$rh}) {
+			my $index = first_index { $_ eq $key } @hash_names;
+			
+			croak "no such hash key name '$key'" if $index == -1;
+
+			$fields[$index] = $rh->{$key};			
+		}
+		
+		#save back the fields
+		$self->value_of($identificator, @fields);
 	}
-	
-	return \%hash;
+	else {	
+		my %hash;
+		foreach my $name (@hash_names) {
+			$hash{$name} = shift @fields;
+		}
+		
+		return \%hash;
+	}
 }
 
 #save back changes 

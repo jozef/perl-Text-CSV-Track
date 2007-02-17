@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 55 };
+BEGIN { plan tests => 60 };
 
 use Text::CSV::Track;
 
@@ -329,20 +329,42 @@ is_deeply(\@got, \@expected,							'multi column storing');
 $track_object->store();
 $track_object = undef;
 
+print "hash tests\n";
 #hash_of() tests
 $track_object = Text::CSV::Track->new({
 	file_name    => $file_name
-	, hash_names => [ qw{ col coool } ]
+	, hash_names => [ qw{ col coool fi ga ro } ]
 });
 my %hash = %{$track_object->hash_of('multi test2')};
 is($hash{'coool'}, 111,									'get the second column by name');
 %hash = %{$track_object->hash_of('multi test1')};
 is($hash{'col'}, 123,									'get the first column from different row by name');
+$track_object->hash_of('multi test3', { coool => 321, ga => 654 } );
+$track_object->store;
 
 $track_object = undef;
 
+print "hash set tests\n";
+#hash_of() set tests
+$track_object = Text::CSV::Track->new({
+	file_name    => $file_name
+	, hash_names => [ qw{ col coool fi ga ro } ]
+});
 
-### TEST different separator
+%hash = %{$track_object->hash_of('multi test3')};
+is($hash{'ga'}, 654,										'check first column');
+is($hash{'coool'}, 321,									'check the second column');
+$track_object->hash_of('multi test3', { coool => 333, ro => 555 } );
+
+%hash = %{$track_object->hash_of('multi test3')};
+is($hash{'ga'}, 654,										'check first column (after single column hash set)');
+is($hash{'coool'}, 333,									'check the second column (after single column hash set)');
+is($hash{'ro'}, 555,										'check the second column (after single column hash set)');
+
+$track_object = undef;
+
+###
+# TEST different separator
 print "test different separators\n";
 
 write_file($file_name,

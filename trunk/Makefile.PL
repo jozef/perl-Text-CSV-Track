@@ -9,6 +9,7 @@ WriteMakefile(
     	Class::Accessor::Fast => 0,
 		Text::CSV             => 0,
 		Carp::Clan            => 0,
+		List::MoreUtils       => 0,
 	}, # e.g., Module::Name => 1.1
 	($] >= 5.005 ?     ## Add these new keywords supported since 5.005
 		(ABSTRACT_FROM  => 'lib/Text/CSV/Track.pm', # retrieve abstract from module
