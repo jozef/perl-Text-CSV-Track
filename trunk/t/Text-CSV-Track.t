@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 63 };
+BEGIN { plan tests => 65 };
 
 use Text::CSV::Track;
 
@@ -415,7 +415,7 @@ $track_object = Text::CSV::Track->new({
 	header_lines => 3,
 });
 $track_object->value_of('123');	#trigger init
-is(@{$track_object->_header_lines_ra}, 3,			'we should have three header lines');
+is(scalar @{$track_object->header_lines}, 3,			'we should have three header lines');
 is($track_object->ident_list, 3,						'we should have three records');
 is($track_object->value_of('123'), "jeden dva try",
 																'check first line read');
@@ -492,6 +492,14 @@ header line 33
 321,"try 321"
 ';
 is($file_content, $file_content_expected,			'check file with changed forced header lines');
+
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+});
+is($track_object->value_of('123') , 'try 123',	'check one stored value');
+is_deeply($track_object->header_lines,\@header_lines,		"check fetching header lines");
+
 
 #restore file
 write_file($file_name, @file_lines);

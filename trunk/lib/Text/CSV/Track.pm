@@ -92,7 +92,7 @@ If setting/getting multiple columns then an array.
 		full_time_lock        => 1,
 		auto_store            => 1,
 		ignore_badly_formated => 1,
-		header_lines          => 3,
+		header_lines          => 3, #or [ '#heading1', '#heading2', '#heading3' ]
 		hash_names            => [ qw{ column1 column2 }  ],
 		single_column         => 1,
 		trunc                 => 1,
@@ -125,7 +125,8 @@ Otherwise the modules calls croak.
 
 'header_lines' specifies how many lines of csv are the header lines. They will
 be skipped during the reading of the file and rewritten during the storing to the
-file. Optionaly you can set array of header lines.
+file. After first read of value the ->header_lines becomes array ref of header lines.
+Optionaly you can set array ref and set the header lines.
 
 'hash_names' specifies hash names fro hash_of() function.
 
@@ -232,13 +233,13 @@ sub new {
 	my $class  = shift;
 	my $ra_arg = shift;
 
-	#create empty pointers
-	$self->{_rh_value_of}     = {};
-	$self->{header_lines} = [];
-	
 	#build object from parent
 	my $self = $class->SUPER::new($ra_arg);
 
+	#create empty pointers
+	$self->{_rh_value_of}     = {};
+	$self->{header_lines} = [] if not defined $self->{header_lines};
+	
 	return $self;
 }
 
@@ -411,12 +412,18 @@ sub _init {
 	my $ignore_missing_file = $self->ignore_missing_file;
 	my $full_time_lock      = $self->full_time_lock;
 	my $_no_lock            = $self->_no_lock;
-	my $header_lines_count  = (
-		ref $self->header_lines eq 'ARRAY'
-		? scalar @{$self->header_lines}
-		: $self->header_lines
-	);
-	my $header_lines_from_file = (ref $self->header_lines eq 'ARRAY' ? 0 : 1);
+	my $header_lines_count;
+	my $header_lines_from_file;
+
+	if (ref $self->header_lines eq 'ARRAY') {
+		$header_lines_count = scalar @{$self->header_lines};
+		$header_lines_from_file = 0;
+	}
+	else {
+		$header_lines_count = $self->header_lines;
+		$self->header_lines([]);
+		$header_lines_from_file = 1;
+	}
  
 	#Text::CSV variables
 	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
