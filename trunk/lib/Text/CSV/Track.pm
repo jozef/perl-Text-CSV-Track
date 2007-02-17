@@ -237,7 +237,7 @@ sub new {
 	my $self = $class->SUPER::new($ra_arg);
 
 	#create empty pointers
-	$self->{_rh_value_of}     = {};
+	$self->{_rh_value_of} = {};
 	$self->{header_lines} = [] if not defined $self->{header_lines};
 	
 	return $self;
@@ -415,12 +415,12 @@ sub _init {
 	my $header_lines_count;
 	my $header_lines_from_file;
 
-	if (ref $self->header_lines eq 'ARRAY') {
+	if (ref $self->{header_lines} eq 'ARRAY') {
 		$header_lines_count = scalar @{$self->header_lines};
 		$header_lines_from_file = 0;
 	}
 	else {
-		$header_lines_count = $self->header_lines;
+		$header_lines_count = $self->{header_lines};
 		$self->header_lines([]);
 		$header_lines_from_file = 1;
 	}
@@ -556,6 +556,23 @@ sub ident_list {
 	my $rh_value_of = $self->_rh_value_of;
 
 	return keys %{$rh_value_of};
+}
+
+sub header_lines {
+	my $self = shift;
+
+	#set
+	if (@_ >= 1) {
+		$self->{header_lines} = shift;
+	} else
+	#get
+	{
+		#if _header_lines then do lazy init and get the header lines from file
+		$self->_init if (ref $self->{header_lines} ne 'ARRAY');
+	
+		return $self->{header_lines};
+	}
+	
 }
 
 sub finish {
