@@ -4,6 +4,7 @@ Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
    - trunc option
    - fixed adding empty header lines if some missing
    - hash_of() set functionality
+   - header lines can be defined in new
 
 0.3   Jan 18 2007
 	- multi column csv support for Track

@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 61 };
+BEGIN { plan tests => 62 };
 
 use Text::CSV::Track;
 
@@ -441,9 +441,14 @@ is(@file_lines_after , 4,								'we should have 3+1 lines in file');
 
 #test header lines and empty file
 unlink($file_name);
+my @header_lines = (
+	"heade line 1\n",
+	"heade line 2\n",
+	"heade line 3\n",
+);
 $track_object = Text::CSV::Track->new({
 	file_name           => $file_name,
-	header_lines        => 3,
+	header_lines        => \@header_lines,
 	ignore_missing_file => 1,
 });
 $track_object->value_of('123','try 123');
@@ -458,6 +463,13 @@ $track_object = Text::CSV::Track->new({
 });
 is($track_object->value_of('123') , 'try 123',	'check the one stored value');
 
+my $file_content = read_file($file_name);
+my $file_content_expected = 'heade line 1
+heade line 2
+heade line 3
+123,"try 123"
+';
+is($file_content, $file_content_expected,			'check file with forced header lines');
 
 #restore file
 write_file($file_name, @file_lines);

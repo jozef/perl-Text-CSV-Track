@@ -345,11 +345,15 @@ sub store {
 	$self->_init();
 
 	#get local variables from self hash
-	my $rh_value_of    = $self->_rh_value_of;
-	my $file_name      = $self->file_name;
-	my $full_time_lock = $self->full_time_lock;
-	my $file_fh        = $self->_file_fh;
-	my $header_lines   = $self->header_lines;
+	my $rh_value_of        = $self->_rh_value_of;
+	my $file_name          = $self->file_name;
+	my $full_time_lock     = $self->full_time_lock;
+	my $file_fh            = $self->_file_fh;
+	my $header_lines_count = (
+		ref $self->header_lines eq 'ARRAY'
+		? scalar @{$self->header_lines}
+		: $self->header_lines
+	);
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -367,13 +371,13 @@ sub store {
 	#write header lines
 	foreach my $header_line (@{$self->_header_lines_ra}) {
 		print {$file_fh} $header_line;
-		$header_lines--;
+		$header_lines_count--;
 	}
 	
 	#if there are some missing lines then add empty ones
-	while ($header_lines) {
+	while ($header_lines_count) {
 		print {$file_fh} "\n";
-		$header_lines--;
+		$header_lines_count--;
 	}
 	
 	#loop through identificators and write to file
@@ -405,7 +409,16 @@ sub _init {
 	my $ignore_missing_file = $self->ignore_missing_file;
 	my $full_time_lock      = $self->full_time_lock;
 	my $_no_lock            = $self->_no_lock;
-	my $header_lines_count  = $self->header_lines;
+	my $header_lines_count  = (
+		ref $self->header_lines eq 'ARRAY'
+		? scalar @{$self->header_lines}
+		: $self->header_lines
+	);
+
+	#if header lines set from command line save them
+	if ((ref $self->header_lines eq 'ARRAY') and (scalar @{$self->_header_lines_ra} == 0)) {
+		@{$self->_header_lines_ra} = @{$self->header_lines}
+	}
 
 	#Text::CSV variables
 	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
