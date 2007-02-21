@@ -365,21 +365,12 @@ sub store {
 		flock($file_fh, LOCK_EX) or croak "can't lock file '$file_name' - $OS_ERROR\n";
 	}
 
-	#do lazy init now becouse afterwards the file will be truncated
-	$self->_init();
-	
 	#truncate the file so that we can store new results
 	truncate($file_fh, 0) or croak "can't truncate file '$file_name' - $OS_ERROR\n";
-
+	
 	#write header lines
 	foreach my $header_line (@{$self->header_lines}) {
 		print {$file_fh} $header_line, "\n";
-		$header_lines_count--;
-	}
-	
-	#if there are some missing lines then add empty ones
-	while ($header_lines_count) {
-		print {$file_fh} "\n";
 		$header_lines_count--;
 	}
 	
@@ -420,8 +411,9 @@ sub _init {
 		$header_lines_from_file = 0;
 	}
 	else {
+		#initialize header_lines with array of empty strings if header_lines is number
 		$header_lines_count = $self->{header_lines};
-		$self->header_lines([]);
+		$self->header_lines([ map {""} (1 .. $header_lines_count) ]);
 		$header_lines_from_file = 1;
 	}
  
@@ -494,7 +486,7 @@ sub _init {
 		#skip header lines and save them for store()
 		if ($header_lines_count) {
 			#save header line if not defined
-			push(@{$self->header_lines}, $line) if $header_lines_from_file;
+			${$self->header_lines}[$file_fh->input_line_number-1] = $line if $header_lines_from_file;
 			
 			#decrease header lines code so then we will know when there is an end of headers
 			$header_lines_count--;
@@ -534,7 +526,7 @@ sub _init {
 		#set the value from before values from file was read !needed becouse of the strategy!
 		$self->value_of($identificator, @old_fields) if $identificator_exist{$identificator};
 	}
-	
+
 	#if full time lock then store file handle
 	if ($full_time_lock) {
 		$self->_file_fh($file_fh);

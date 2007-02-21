@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 65 };
+BEGIN { plan tests => 66 };
 
 use Text::CSV::Track;
 
@@ -499,10 +499,21 @@ $track_object = Text::CSV::Track->new({
 is_deeply($track_object->header_lines,\@header_lines,		"check fetching header lines");
 is($track_object->value_of('123') , 'try 123',	'check one stored value');
 
+#empty file + numeric header lines
+unlink($file_name);
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 1,
+	ignore_missing_file => 1,
+});
+$track_object->value_of('321','try 321');
+$track_object->store();
+my @file_lines2 = read_file($file_name);
+is(@file_lines2, 2,									'check numeric header lines definition on empty file');
+
 
 #restore file
 write_file($file_name, @file_lines);
-
 
 ###TEST always_quote
 print "test always quote\n";
