@@ -226,6 +226,7 @@ use English qw(-no_match_vars);
 use Fcntl ':flock'; # import LOCK_* constants
 use Fcntl ':seek';  # import SEEK_* constants
 use List::MoreUtils qw { first_index };
+use IO::Handle; #must be because file_fh->input_line_number function
 
 
 #new
