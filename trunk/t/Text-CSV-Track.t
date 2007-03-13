@@ -471,7 +471,7 @@ header line 3
 is($file_content, $file_content_expected,			'check file with forced header lines');
 
 print "changing header lines\n";
-my @header_lines = (
+@header_lines = (
 	"header line 1",
 	"header line 2",
 	"header line 33",
@@ -483,8 +483,8 @@ $track_object = Text::CSV::Track->new({
 });
 $track_object->value_of('321','try 321');
 $track_object->store();
-my $file_content = read_file($file_name);
-my $file_content_expected = 'header line 1
+$file_content = read_file($file_name);
+$file_content_expected = 'header line 1
 header line 2
 header line 33
 123,"try 123"
