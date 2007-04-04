@@ -4,7 +4,7 @@ Text::CSV::Track - module to work with .csv file that stores some value(s) per i
 
 =head1 VERSION
 
-This documentation refers to version 0.4. 
+This documentation refers to version 0.5. 
 
 =head1 SYNOPSIS
 
@@ -87,15 +87,16 @@ If setting/getting multiple columns then an array.
 =item new()
 
 	new({
-		file_name             => 'filename.csv',
-		ignore_missing_file   => 1,
-		full_time_lock        => 1,
-		auto_store            => 1,
-		ignore_badly_formated => 1,
-		header_lines          => 3, #or [ '#heading1', '#heading2', '#heading3' ]
-		hash_names            => [ qw{ column1 column2 }  ],
-		single_column         => 1,
-		trunc                 => 1,
+		file_name              => 'filename.csv',
+		ignore_missing_file    => 1,
+		full_time_lock         => 1,
+		auto_store             => 1,
+		ignore_badly_formated  => 1,
+		header_lines           => 3, #or [ '#heading1', '#heading2', '#heading3' ]
+		hash_names             => [ qw{ column1 column2 }  ],
+		single_column          => 1,
+		trunc                  => 1,
+		replace_new_lines_with => '|',
 
 		#L<Text::CSV> paramteres
 		sep_char              => q{,},
@@ -173,7 +174,7 @@ Returns one line of csv for given identificator.
 
 =head1 SEE ALSO
 
-L<Text::CSV::Trac::Max>, L<Text::CSV::Trac::Min>, SVN repository - L<http://svn.cle.sk/svn/pub/cpan/Text-CSV-Track/>
+L<Text::CSV::Track::Max>, L<Text::CSV::Track::Min>, SVN repository - L<http://svn.cle.sk/svn/pub/cpan/Text-CSV-Track/>
 
 =head1 AUTHOR
 
@@ -185,7 +186,7 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-our $VERSION = '0.4';
+our $VERSION = '0.5';
 use 5.006;
 
 use strict;
@@ -208,6 +209,7 @@ __PACKAGE__->mk_accessors(
 		hash_names
 		single_column
 		trunc
+		replace_new_lines_with
 
 		sep_char
 		escape_char
@@ -256,6 +258,15 @@ sub csv_line_of {
 
 	#if in single column mode remove '1' from the start of the fields
 	shift(@fields) if $self->single_column;
+	
+	#remove new lines
+	if (defined $self->replace_new_lines_with) {
+		my $replacement = $self->replace_new_lines_with;
+		foreach my $field (@fields) {
+			next if not defined $field;
+			$field =~ s{[\n\r]+}{$replacement}sg;
+		}
+	}
 	
 	croak "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
 		if (not $self->_csv_format->combine($identificator, @fields));
@@ -365,6 +376,17 @@ sub store {
 		#lock and truncate the access store file
 		flock($file_fh, LOCK_EX) or croak "can't lock file '$file_name' - $OS_ERROR\n";
 	}
+	
+	#loop through identificators and store to array only if all works fine file will be overwritten
+	my @file_lines;
+	foreach my $identificator (sort $self->ident_list()) {
+		my $csv_line = $self->csv_line_of($identificator);
+
+		#skip removed entries
+		next if not $csv_line;
+		
+		push(@file_lines, $csv_line."\n");
+	}
 
 	#truncate the file so that we can store new results
 	truncate($file_fh, 0) or croak "can't truncate file '$file_name' - $OS_ERROR\n";
@@ -374,16 +396,11 @@ sub store {
 		print {$file_fh} $header_line, "\n";
 		$header_lines_count--;
 	}
-	
-	#loop through identificators and write to file
-	foreach my $identificator (sort $self->ident_list()) {
-		my $csv_line = $self->csv_line_of($identificator);
 
-		#skip removed entries
-		next if not $csv_line;
-		
+	#write csv lines
+	foreach my $line (@file_lines) {
 		#print the line to csv file
-		print {$file_fh} $csv_line, "\n";
+		print {$file_fh} $line;
 	}
 	
 	close($file_fh);
@@ -397,6 +414,10 @@ sub _init {
 
 	#prevent from reexecuting
 	$self->_lazy_init(1);
+	
+	#default values
+	$self->replace_new_lines_with('|') if not exists $self->{'replace_new_lines_with'};
+	$self->binary(1)                   if not exists $self->{'binary'};
 	
 	#get local variables from self hash
 	my $rh_value_of         = $self->_rh_value_of;

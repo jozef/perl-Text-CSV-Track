@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 66 };
+BEGIN { plan tests => 70 };
 
 use Text::CSV::Track;
 
@@ -193,19 +193,50 @@ $track_object->value_of('xman1', undef);
 $track_object->store();
 $track_object = undef;
 
-SKIP: {
-	skip 'multiple line values not jet supported by Text::CSV', 1 if not $MULTI_LINE_SUPPORT;
+print "2 lines entry\n";
+#two line entry test
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
 
-	#add 2 line entry
-	$track_object->value_of("xman2","muhaha\nhaha");
-	$track_object->store();
-	$track_object = undef;
-	
-	#check
-	my $track_object = Text::CSV::Track->new({ file_name => $file_name });
-	is(100, 100,											'was double line entry added?');
-	$track_object = undef;
-}
+#add 2 line entry
+$track_object->value_of("xman2","muhaha\nhaha\n");
+$track_object->store();
+$track_object = undef;
+
+#check
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of("xman2"), "muhaha|haha|",			'was double line entry added and changed?');
+$track_object = undef;
+
+
+#two line entry test2
+$track_object = Text::CSV::Track->new({ file_name => $file_name, replace_new_lines_with => ', ' });
+
+#add 2 line entry with different separator
+$track_object->value_of("xman3","muhaha\nhaha\n");
+$track_object->store();
+$track_object = undef;
+
+#check
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of("xman3"), "muhaha, haha, ",			'was double line entry added and changed with different separator?');
+$track_object = undef;
+
+
+print "binary data\n";
+
+#test binary data
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+
+#add binary data
+my $binary_data = "+ľščťžýáíé";
+$track_object->value_of("xman4", $binary_data);
+$track_object->store();
+$track_object = undef;
+
+#check
+$track_object = Text::CSV::Track->new({ file_name => $file_name });
+is($track_object->value_of("xman4"), $binary_data,			'check binary data read');
+$track_object = undef;
 
 #save a copy for comparation
 my @bckup_lines = sort @lines;
@@ -580,6 +611,21 @@ $track_object = undef;
 @file_lines_after = read_file($file_name);
 is_deeply(\@file_lines_after,\@file_lines,		"check single quote file after store");
 
+
+print "failure of store should not corrupt final csv file\n";
+#two line entry test
+$track_object = Text::CSV::Track->new({ file_name => $file_name, binary => 0 });
+
+$binary_data = "+ľščťžýáíé";
+
+$track_object->value_of("111", $binary_data);
+eval { $track_object->store(); };
+isnt($EVAL_ERROR, $EMPTY_STRING,					'we should have croak when storing binary and "binary => 0"');
+$track_object = undef;
+$EVAL_ERROR = undef;
+
+@file_lines_after = read_file($file_name);
+is_deeply(\@file_lines, \@file_lines_after,			'check quote file after crashed store');
 
 ### CLEANUP
 

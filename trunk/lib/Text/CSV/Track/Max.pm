@@ -20,7 +20,7 @@ old one. It it's higher then the value is updated if not old value persists.
 package Text::CSV::Track::Max;
 
 our $VERSION = '0.3';
-use 5.008;
+use 5.006;
 
 use strict;
 use warnings;

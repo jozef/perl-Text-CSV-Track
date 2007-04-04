@@ -1,5 +1,12 @@
 Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
 
+0.5 2007 Apr 4
+	- fixed Track::Max was requesting perl 5.008 by exident
+	- File::Slurp as dependency
+	- when storing values with new lines, by default replaced by '|' can be changed by 'replace_new_lines_with' parameter
+	- storing as binary data by default because of national characters
+	- error in generating csv line during store() will not corrupt .csv file
+
 0.4 2007
 	- trunc option
 	- fixed adding empty header lines if some missing
