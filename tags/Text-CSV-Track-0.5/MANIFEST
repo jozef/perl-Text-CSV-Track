@@ -1,0 +1,10 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/Text-CSV-Track.t
+t/Text-CSV-Track-Min.t
+t/Text-CSV-Track-Max.t
+lib/Text/CSV/Track.pm
+lib/Text/CSV/Track/Min.pm
+lib/Text/CSV/Track/Max.pm
