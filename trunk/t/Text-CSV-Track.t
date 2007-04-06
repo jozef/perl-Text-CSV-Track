@@ -228,7 +228,7 @@ print "binary data\n";
 $track_object = Text::CSV::Track->new({ file_name => $file_name });
 
 #add binary data
-my $binary_data = "+ľščťžýáíé";
+my $binary_data = chr(196).chr(190).chr(197).chr(161).chr(196).chr(141).chr(197).chr(165).chr(197).chr(190).chr(195).chr(189).chr(195).chr(161).chr(195).chr(173).chr(195).chr(169);
 $track_object->value_of("xman4", $binary_data);
 $track_object->store();
 $track_object = undef;
@@ -616,8 +616,7 @@ print "failure of store should not corrupt final csv file\n";
 #two line entry test
 $track_object = Text::CSV::Track->new({ file_name => $file_name, binary => 0 });
 
-$binary_data = "+ľščťžýáíé";
-
+$binary_data = chr(196).chr(190).chr(197).chr(161).chr(196).chr(141).chr(197).chr(165).chr(197).chr(190).chr(195).chr(189).chr(195).chr(161).chr(195).chr(173).chr(195).chr(169);
 $track_object->value_of("111", $binary_data);
 eval { $track_object->store(); };
 isnt($EVAL_ERROR, $EMPTY_STRING,					'we should have croak when storing binary and "binary => 0"');
