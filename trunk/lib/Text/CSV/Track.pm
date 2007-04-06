@@ -87,16 +87,17 @@ If setting/getting multiple columns then an array.
 =item new()
 
 	new({
-		file_name              => 'filename.csv',
-		ignore_missing_file    => 1,
-		full_time_lock         => 1,
-		auto_store             => 1,
-		ignore_badly_formated  => 1,
-		header_lines           => 3, #or [ '#heading1', '#heading2', '#heading3' ]
-		hash_names             => [ qw{ column1 column2 }  ],
-		single_column          => 1,
-		trunc                  => 1,
-		replace_new_lines_with => '|',
+		file_name                   => 'filename.csv',
+		ignore_missing_file         => 1,
+		full_time_lock              => 1,
+		auto_store                  => 1,
+		ignore_badly_formated       => 1,
+		header_lines                => 3, #or [ '#heading1', '#heading2', '#heading3' ]
+		hash_names                  => [ qw{ column1 column2 }  ],
+		single_column               => 1,
+		trunc                       => 1,
+		replace_new_lines_with      => '|',
+		identificator_column_number => 0,
 
 		#L<Text::CSV> paramteres
 		sep_char              => q{,},
@@ -131,11 +132,20 @@ Optionaly you can set array ref and set the header lines.
 
 'hash_names' specifies hash names fro hash_of() function.
 
-'single_column' files that store just the identificator for line. In this case during the read
-1 is set as the second column. During store that one is dropped so single column will be stored
-back.
+'single_column' files that store just the identificator for line. In this case
+during the read 1 is set as the second column. During store that one is dropped
+so single column will be stored back.
 
 'trunc' don't read previous file values. Header lines will persist.
+
+'replace_new_lines_with' [\n\r]+ are replaced by this character if defined. By
+default it is '|'. It is a good idea to replace new lines because they are not
+handled by Text::CSV on read.
+
+'identificator_column_number'. If identificator is in different column than the
+first one set this value. Column are numbered starting with 0 like in an
+@array. ->value_of and ->hash_of are indexed as it the identificator column
+was not there.
 
 See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
 
@@ -165,11 +175,9 @@ Returns one line of csv for given identificator.
 
 =head1 TODO
 
-	- mention Track::Max and Track::Min
 	- ident_list() should return number of non undef rows in scalar context
 	- strategy for Track ->new({ strategy => sub { $a > $b } })
 	- then rewrite max/min to use it this way
-	- different column as the first one as identiffier column
 	- constraints for columns
 
 =head1 SEE ALSO
@@ -186,7 +194,7 @@ Jozef Kutej <jozef.kutej@hp.com>
 
 package Text::CSV::Track;
 
-our $VERSION = '0.5';
+our $VERSION = '0.6';
 use 5.006;
 
 use strict;
@@ -210,6 +218,7 @@ __PACKAGE__->mk_accessors(
 		single_column
 		trunc
 		replace_new_lines_with
+		identificator_column_number
 
 		sep_char
 		escape_char
@@ -268,8 +277,11 @@ sub csv_line_of {
 		}
 	}
 	
+	#add identificator to the values
+	splice(@fields, $self->identificator_column_number, 0, $identificator);
+	
 	croak "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
-		if (not $self->_csv_format->combine($identificator, @fields));
+		if (not $self->_csv_format->combine(@fields));
 	
 	return $self->_csv_format->string();
 }
@@ -416,8 +428,9 @@ sub _init {
 	$self->_lazy_init(1);
 	
 	#default values
-	$self->replace_new_lines_with('|') if not exists $self->{'replace_new_lines_with'};
-	$self->binary(1)                   if not exists $self->{'binary'};
+	$self->replace_new_lines_with('|')    if not exists $self->{'replace_new_lines_with'};
+	$self->binary(1)                      if not exists $self->{'binary'};
+	$self->identificator_column_number(0) if not exists $self->{'identificator_column_number'};
 	
 	#get local variables from self hash
 	my $rh_value_of         = $self->_rh_value_of;
@@ -534,7 +547,7 @@ sub _init {
 		
 		#extract fields
 		my @fields = $self->_csv_format->fields();
-		my $identificator = shift @fields;
+		my $identificator = splice(@fields, $self->identificator_column_number, 1);
 		
 		#if in single column mode insert '1' to the fields
 		unshift(@fields, 1) if $self->single_column;
