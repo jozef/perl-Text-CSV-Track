@@ -7,7 +7,7 @@ WriteMakefile(
 	VERSION_FROM      => 'lib/Text/CSV/Track.pm', # finds $VERSION
 	PREREQ_PM         => {
     	Class::Accessor::Fast => 0,
-		Text::CSV             => 0,
+		Text::CSV_XS          => 0,
 		Carp::Clan            => 0,
 		List::MoreUtils       => 0,
 		IO::Handle            => 0,

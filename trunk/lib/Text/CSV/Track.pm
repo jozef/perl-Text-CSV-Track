@@ -99,7 +99,7 @@ If setting/getting multiple columns then an array.
 		replace_new_lines_with      => '|',
 		identificator_column_number => 0,
 
-		#L<Text::CSV> paramteres
+		#L<Text::CSV_XS> paramteres
 		sep_char              => q{,},
 		escape_char           => q{\\},
 		quote_char            => q{"},
@@ -140,14 +140,14 @@ so single column will be stored back.
 
 'replace_new_lines_with' [\n\r]+ are replaced by this character if defined. By
 default it is '|'. It is a good idea to replace new lines because they are not
-handled by Text::CSV on read.
+handled by Text::CSV_XS on read.
 
 'identificator_column_number'. If identificator is in different column than the
 first one set this value. Column are numbered starting with 0 like in an
 @array. ->value_of and ->hash_of are indexed as it the identificator column
 was not there.
 
-See L<Text::CSV> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
+See L<Text::CSV_XS> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
 
 =item value_of()
 
@@ -231,7 +231,7 @@ __PACKAGE__->mk_accessors(
 
 use FindBin;
 
-use Text::CSV;
+use Text::CSV_XS;
 use Carp::Clan;
 use English qw(-no_match_vars);
 use Fcntl ':flock'; # import LOCK_* constants
@@ -452,7 +452,7 @@ sub _init {
 		$header_lines_from_file = 1;
 	}
  
-	#Text::CSV variables
+	#Text::CSV_XS variables
 	my $sep_char            = defined $self->sep_char    ? $self->sep_char    : q{,};
 	my $escape_char         = defined $self->escape_char ? $self->escape_char : q{\\};
 	my $quote_char          = defined $self->quote_char  ? $self->quote_char  : q{"};
@@ -464,7 +464,7 @@ sub _init {
 	return if not $file_name;
 
 	#define csv format
-	$self->_csv_format(Text::CSV->new({
+	$self->_csv_format(Text::CSV_XS->new({
 		sep_char     => $sep_char,
 		escape_char  => $escape_char,
 		quote_char   => $quote_char,
