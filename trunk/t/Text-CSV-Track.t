@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 77 };
+BEGIN { plan tests => 89 };
 
 use Text::CSV::Track;
 
@@ -543,7 +543,128 @@ my @file_lines2 = read_file($file_name);
 is(@file_lines2, 2,									'check numeric header lines definition on empty file');
 
 
+#footer
+print "test file with footer lines\n";
+
+my @footer_lines = (
+	"footer line 1",
+	"footer line 2 $SINGLE_QUOTE, $DOUBLE_QUOTE",
+	"footer line 3, 333",
+);
+
+@file_lines = (
+	"heade line 1\n",
+	"heade line 2 $SINGLE_QUOTE, $DOUBLE_QUOTE\n",
+	"heade line 3, 333\n",
+	"123,\"jeden dva try\"\n",
+	"321,\"tri dva jeden\"\n",
+	"unquoted,\"last one\"\n",
+	map { $_."\n" } @footer_lines,
+);
+
+write_file($file_name, @file_lines);
+
+#check
+$track_object = Text::CSV::Track->new({
+	file_name    => $file_name,
+	header_lines => 3,
+	footer_lines => 3,
+});
+is(scalar @{$track_object->header_lines}, 3,		'we should have three header lines');
+is(scalar @{$track_object->footer_lines}, 3,		'we should have three footer lines');
+is($track_object->ident_list, 3,					'we should have three records');
+is($track_object->value_of('123'), "jeden dva try",
+													'check first line read');
+
+is_deeply(\@{$track_object->footer_lines}, \@footer_lines,
+													'check read footer lines');
+
+@footer_lines = (
+	"footer line 111",
+	"footer line 222",
+	"footer line 333",
+);
+
+$track_object->footer_lines(\@footer_lines);
+$track_object->store;
+undef $track_object;
+
+$track_object = Text::CSV::Track->new({
+	file_name    => $file_name,
+	header_lines => 3,
+	footer_lines => 3,
+});
+is_deeply(\@{$track_object->footer_lines}, \@footer_lines,
+													'check changed footer lines');
+undef $track_object;
+
+#footer with trunc option
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+	footer_lines        => 3,
+	trunc               => 1,
+});
+$track_object->store();
+undef $track_object;
+
+@file_lines2 = read_file($file_name);
+is(6, scalar @file_lines2,							'we should have the same file with only header and footer lines');
+
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+	footer_lines        => 3,
+	trunc               => 1,
+});
+is_deeply(\@{$track_object->footer_lines}, \@footer_lines,
+													'check footer lines');
+
+#empty file with footer
+unlink($file_name);
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+	footer_lines        => 3,
+	ignore_missing_file => 1,
+});
+$track_object->store;
+
+@file_lines2 = read_file($file_name);
+is(6, scalar @file_lines2,									'we should have empty file with 6 empty header and footer lines');
+
+$track_object->value_of('test', '123');
+$track_object->footer_lines(\@footer_lines);
+$track_object->store;
+undef $track_object;
+
+@file_lines2 = read_file($file_name);
+is(7, scalar @file_lines2,									'we should have the same file with footer filled and 1 value');
+
+$track_object = Text::CSV::Track->new({
+	file_name           => $file_name,
+	header_lines        => 3,
+	footer_lines        => 3,
+});
+is($track_object->value_of('test'), '123',					'check that value');
+
+#removing of footer
+$track_object->footer_lines([]);
+$track_object->store;
+undef $track_object;
+
+@file_lines2 = read_file($file_name);
+is(4, scalar @file_lines2,									'we should have the same file without footer');
+
 #restore file
+@file_lines = (
+	"heade line 1\n",
+	"heade line 2 $SINGLE_QUOTE, $DOUBLE_QUOTE\n",
+	"heade line 3, 333\n",
+	"123,\"jeden dva try\"\n",
+	"321,\"tri dva jeden\"\n",
+	"unquoted,\"last one\"\n",
+);
 write_file($file_name, @file_lines);
 
 ###TEST always_quote

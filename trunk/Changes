@@ -2,6 +2,8 @@ Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
 
 0.6 2007 Apr 6
 	- 'identificator_column_number' allows identificator to be in a different column
+	- replaced Text::CSV by Text::CSV_XS because that is the right one
+	- footer lines support added
 
 0.5 2007 Apr 4
 	- fixed Track::Max was requesting perl 5.008 by exident

@@ -93,6 +93,7 @@ If setting/getting multiple columns then an array.
 		auto_store                  => 1,
 		ignore_badly_formated       => 1,
 		header_lines                => 3, #or [ '#heading1', '#heading2', '#heading3' ]
+		footer_lines                => 3, #or [ '#footer1', '#footer2', '#footer3' ]
 		hash_names                  => [ qw{ column1 column2 }  ],
 		single_column               => 1,
 		trunc                       => 1,
@@ -214,6 +215,7 @@ __PACKAGE__->mk_accessors(
 		ignore_badly_formated
 		_csv_format
 		header_lines
+		footer_lines
 		hash_names
 		single_column
 		trunc
@@ -239,7 +241,6 @@ use Fcntl ':seek';  # import SEEK_* constants
 use List::MoreUtils qw { first_index };
 use IO::Handle; #must be because file_fh->input_line_number function
 
-
 #new
 sub new {
 	my $class  = shift;
@@ -251,6 +252,7 @@ sub new {
 	#create empty pointers
 	$self->{_rh_value_of} = {};
 	$self->{header_lines} = [] if not defined $self->{header_lines};
+	$self->{footer_lines} = [] if not defined $self->{footer_lines};
 	
 	return $self;
 }
@@ -380,7 +382,6 @@ sub store {
 	my $file_name          = $self->file_name;
 	my $full_time_lock     = $self->full_time_lock;
 	my $file_fh            = $self->_file_fh;
-	my $header_lines_count = scalar @{$self->header_lines};
 
 	if (not $full_time_lock) {
 		open($file_fh, "+>>", $file_name) or croak "can't write to file '$file_name' - $OS_ERROR";
@@ -406,7 +407,6 @@ sub store {
 	#write header lines
 	foreach my $header_line (@{$self->header_lines}) {
 		print {$file_fh} $header_line, "\n";
-		$header_lines_count--;
 	}
 
 	#write csv lines
@@ -415,6 +415,11 @@ sub store {
 		print {$file_fh} $line;
 	}
 	
+	#write footer lines
+	foreach my $footer_line (@{$self->footer_lines}) {
+		print {$file_fh} $footer_line, "\n";
+	}
+
 	close($file_fh);
 }
 
@@ -440,6 +445,8 @@ sub _init {
 	my $_no_lock            = $self->_no_lock;
 	my $header_lines_count;
 	my $header_lines_from_file;
+	my $footer_lines_count;
+	my $footer_lines_from_file;
 
 	if (ref $self->{header_lines} eq 'ARRAY') {
 		$header_lines_count = scalar @{$self->header_lines};
@@ -450,6 +457,17 @@ sub _init {
 		$header_lines_count = $self->{header_lines};
 		$self->header_lines([ map {""} (1 .. $header_lines_count) ]);
 		$header_lines_from_file = 1;
+	}
+ 
+	if (ref $self->{footer_lines} eq 'ARRAY') {
+		$footer_lines_count = scalar @{$self->footer_lines};
+		$footer_lines_from_file = 0;
+	}
+	else {
+		#initialize footer_lines with array of empty strings if footer_lines is number
+		$footer_lines_count = $self->{footer_lines};
+		$self->footer_lines([ map {""} (1 .. $footer_lines_count) ]);
+		$footer_lines_from_file = 1;
 	}
  
 	#Text::CSV_XS variables
@@ -510,6 +528,13 @@ sub _init {
 	else {
 		flock($file_fh, LOCK_SH) or croak "can't lock file '$file_name' - $OS_ERROR\n";
 	}
+	
+	my $lines_count = 0;
+	$lines_count++ while (<$file_fh>);
+
+	#reset file position
+	seek($file_fh, 0, SEEK_SET);
+	$file_fh->input_line_number(0);
 
 	#create hash of identificator => 1
 	my %identificator_exist = map { $_ => 1 } $self->ident_list;
@@ -517,7 +542,9 @@ sub _init {
 	#parse lines and store values in the hash
 	LINE:
 	while (my $line = <$file_fh>) {
-		chomp($line);			
+		chomp($line);
+		$lines_count--;
+		
 		#skip header lines and save them for store()
 		if ($header_lines_count) {
 			#save header line if not defined
@@ -528,9 +555,17 @@ sub _init {
 			
 			next;
 		}
+
+		#skip footer lines and save them for store()
+		if ($lines_count < $footer_lines_count) {
+			#save footer lines if not defined
+			${$self->footer_lines}[$footer_lines_count - $lines_count - 1] = $line if $footer_lines_from_file;
+			
+			next;
+		}
 		
 		#skip reading of values if in 'trunc' mode
-		last if $self->trunc;
+		next if $self->trunc;
 	
 		#verify line. if incorrect skip with warning
 		if (!$self->_csv_format->parse($line)) {
@@ -600,6 +635,22 @@ sub header_lines {
 		return $self->{header_lines};
 	}
 	
+}
+
+sub footer_lines {
+	my $self = shift;
+
+	#set
+	if (@_ >= 1) {
+		$self->{footer_lines} = shift;
+	} else
+	#get
+	{
+		#if footer_lines is not array then do lazy init and get the footer lines from file
+		$self->_init if (ref $self->{footer_lines} ne 'ARRAY');
+	
+		return $self->{footer_lines};
+	}
 }
 
 sub finish {
