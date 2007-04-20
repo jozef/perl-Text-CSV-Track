@@ -164,13 +164,20 @@ Returns hash of values. Names for the hash values are taken from hash_names para
 
 when this one is called it will write the changes back to file.
 
+=item store_as_xml()
+
+this will write to the file but the values will be excel xml formated. Combined with
+proper header and footer lines this can generate excel readable xml file.
+
 =item ident_list()
 
 will return the array of identificators
 
-=item csv_line_of($ident)
+=item output_row_of($ident, $type)
 
-Returns one line of csv for given identificator.
+$type is one of csv or xml.
+
+Returns one row of data for given identificator.
 
 =back
 
@@ -257,10 +264,11 @@ sub new {
 	return $self;
 }
 
-sub csv_line_of {
+sub output_row_of {
 	my $self          = shift;
 	my $identificator = shift;
-
+	my $type          = shift;
+	
 	#combine values for csv file
 	my @fields = $self->value_of($identificator);
 
@@ -282,10 +290,34 @@ sub csv_line_of {
 	#add identificator to the values
 	splice(@fields, $self->identificator_column_number, 0, $identificator);
 	
-	croak "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
-		if (not $self->_csv_format->combine(@fields));
+	if ($type eq 'csv') {
+		croak "invalid value to store to an csv file - ", $self->_csv_format->error_input(),"\n"
+			if (not $self->_csv_format->combine(@fields));
+
+		return $self->_csv_format->string();
+	}
+	elsif ($type eq 'xml') {
+		my $xml_line = '<Row>'."\n";
+		$xml_line .= '    <Cell><Data ss:Type="String">'.$identificator.'</Data></Cell>'."\n";
+		foreach my $col_value ($self->value_of($identificator)) {
+			$col_value = '' if not defined $col_value;
+			$xml_line .= '    <Cell><Data ss:Type="String">'.$col_value.'</Data></Cell>'."\n";
+		}
+		$xml_line .= '</Row>';
+
+		return $xml_line;
+	}
+	else {
+		croak "unknow output format";
+	}
+}
+
+#for backward compatibility
+sub csv_line_of {
+	my $self          = shift;
+	my $identificator = shift;
 	
-	return $self->_csv_format->string();
+	return $self->output_row_of($identificator, 'csv');
 }
 
 #get or set value
@@ -370,9 +402,16 @@ sub hash_of {
 	}
 }
 
+sub store_as_xml {
+	my $self         = shift;
+
+	return $self->store(1);
+}
+
 #save back changes 
 sub store {
-	my $self = shift;
+	my $self         = shift;
+	my $store_as_xml = shift;
 
 	#lazy initialization
 	$self->_init();
@@ -393,12 +432,18 @@ sub store {
 	#loop through identificators and store to array only if all works fine file will be overwritten
 	my @file_lines;
 	foreach my $identificator (sort $self->ident_list()) {
-		my $csv_line = $self->csv_line_of($identificator);
+		my $file_line;
+		if (defined $store_as_xml) {
+			$file_line = $self->output_row_of($identificator, 'xml');
+		}
+		else {
+			$file_line = $self->output_row_of($identificator, 'csv');
+		}
 
 		#skip removed entries
-		next if not $csv_line;
+		next if not $file_line;
 		
-		push(@file_lines, $csv_line."\n");
+		push(@file_lines, $file_line."\n");
 	}
 
 	#truncate the file so that we can store new results

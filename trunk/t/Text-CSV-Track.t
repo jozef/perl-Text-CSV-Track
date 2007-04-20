@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 89 };
+BEGIN { plan tests => 90 };
 
 use Text::CSV::Track;
 
@@ -785,6 +785,42 @@ my @file_lines = (
 
 @file_lines_after = read_file($file_name);
 is_deeply(\@file_lines, \@file_lines_after,			'check file after store of identificator in different column');
+
+
+#check store as xml
+print "check store as xml\n";
+$track_object = Text::CSV::Track->new({
+	file_name => $file_name,
+	trunc     => 1,
+});
+$track_object->value_of('1', 'aaa');
+$track_object->value_of('2', 'ddd');
+$track_object->value_of('3', 'bbb');
+$track_object->value_of('4', 'ccc');
+$track_object->store_as_xml();
+
+my @file_lines = (
+	"<Row>\n",
+	"    <Cell><Data ss:Type=\"String\">1</Data></Cell>\n",
+	"    <Cell><Data ss:Type=\"String\">aaa</Data></Cell>\n",
+	"</Row>\n",
+	"<Row>\n",
+	"    <Cell><Data ss:Type=\"String\">2</Data></Cell>\n",
+	"    <Cell><Data ss:Type=\"String\">ddd</Data></Cell>\n",
+	"</Row>\n",
+	"<Row>\n",
+	"    <Cell><Data ss:Type=\"String\">3</Data></Cell>\n",
+	"    <Cell><Data ss:Type=\"String\">bbb</Data></Cell>\n",
+	"</Row>\n",
+	"<Row>\n",
+	"    <Cell><Data ss:Type=\"String\">4</Data></Cell>\n",
+	"    <Cell><Data ss:Type=\"String\">ccc</Data></Cell>\n",
+	"</Row>\n",
+);
+
+@file_lines_after = read_file($file_name);
+is_deeply(\@file_lines_after, \@file_lines,			'check file after store as xml');
+
 
 ### CLEANUP
 
