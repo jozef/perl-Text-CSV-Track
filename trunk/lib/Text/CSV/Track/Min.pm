@@ -29,9 +29,20 @@ use base qw(Text::CSV::Track);
 
 use FindBin;
 
-use Text::CSV;
+use Text::CSV_XS;
 use Carp::Clan;
 
+
+=head1 METHODS
+
+=over 4
+
+=item value_of()
+
+Overridden function from L<Text::CSV::Tack> that stores value only if it is
+smaller then the one before. 
+
+=cut
 
 sub value_of {
 	my $self          = shift;
@@ -61,6 +72,10 @@ sub value_of {
 		$self->SUPER::value_of($identificator, $value);
 	}
 }
+
+=back
+
+=cut
 
 1;
 
