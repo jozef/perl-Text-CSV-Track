@@ -4,7 +4,7 @@
 #########################
 
 use Test::More;	# 'no_plan';
-BEGIN { plan tests => 90 };
+BEGIN { plan tests => 91 };
 
 use Text::CSV::Track;
 
@@ -356,6 +356,8 @@ is($track_object->value_of('multi test1'), 2,			'multi column storing in scalar 
 my @got = $track_object->value_of('multi test1');
 my @expected = (123, 321);
 is_deeply(\@got, \@expected,							'multi column storing');
+
+is($track_object->csv_line_of('multi test2'), '"multi test2",222,111' , 'test csv_line_of()');
 
 $track_object->store();
 $track_object = undef;
@@ -751,7 +753,7 @@ is_deeply(\@file_lines, \@file_lines_after,			'check quote file after crashed st
 ###
 # different column as identificator
 print "different column as identificator\n";
-my @file_lines = (
+@file_lines = (
 	"abc,5,qwe\n",
 	"abc,4\n",
 	"123,6,hgf rty\n",

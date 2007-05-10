@@ -179,6 +179,25 @@ $type is one of csv or xml.
 
 Returns one row of data for given identificator.
 
+=item csv_line_of($identificator)
+
+Calls $self->output_row_of($identificator, 'csv').
+
+=item header_lines()
+
+Set or get header lines.
+
+=item footer_lines()
+
+Set or get footer lines.
+
+=item finish()
+
+Called by destructor to clean up thinks. Calls store() if auto_atore is on
+and closes csv filehandle.
+
+=cut
+
 =back
 
 =head1 TODO
@@ -187,6 +206,7 @@ Returns one row of data for given identificator.
 	- strategy for Track ->new({ strategy => sub { $a > $b } })
 	- then rewrite max/min to use it this way
 	- constraints for columns
+	- shell executable to copy, dump csv file or extract data from it
 
 =head1 SEE ALSO
 
@@ -248,11 +268,6 @@ use Fcntl ':seek';  # import SEEK_* constants
 use List::MoreUtils qw { first_index };
 use IO::Handle; #must be because file_fh->input_line_number function
 
-=head1 METHODS
-
-=over 4
-
-=cut
 
 sub new {
 	my $class  = shift;
@@ -268,14 +283,6 @@ sub new {
 	
 	return $self;
 }
-
-=item output_row_of($ident, $type)
-
-Returns output row if identificator.
-
-$type is one of: csv, xml
-
-=cut
 
 sub output_row_of {
 	my $self          = shift;
@@ -325,11 +332,6 @@ sub output_row_of {
 	}
 }
 
-=item csv_line_of($identificator)
-
-Calls $self->output_row_of($identificator, 'csv').
-
-=cut
 
 sub csv_line_of {
 	my $self          = shift;
@@ -338,11 +340,6 @@ sub csv_line_of {
 	return $self->output_row_of($identificator, 'csv');
 }
 
-=item value_of($ident)
-
-Sets or gets value(s) for identificator. 
-
-=cut
 
 sub value_of {
 	my $self          = shift;
@@ -385,11 +382,6 @@ sub value_of {
 	}
 }
 
-=item hash_of()
-
-Sets or gets hash value(s) for identificator. 
-
-=cut
 
 sub hash_of {
 	my $self          = shift;
@@ -431,11 +423,6 @@ sub hash_of {
 	}
 }
 
-=item store_as_xml()
-
-Same as store() but final file will be xml not csv.
-
-=cut
 
 sub store_as_xml {
 	my $self         = shift;
@@ -443,11 +430,6 @@ sub store_as_xml {
 	return $self->store(1);
 }
 
-=item store()
-
-Save identificators and their values to file
-
-=cut
 
 sub store {
 	my $self         = shift;
@@ -693,11 +675,6 @@ sub _init {
 	}
 }
 
-=item ident_list()
-
-Returns array of identificators.
-
-=cut
 
 sub ident_list {
 	my $self = shift;
@@ -711,11 +688,6 @@ sub ident_list {
 	return keys %{$rh_value_of};
 }
 
-=item header_lines()
-
-Set or get header lines.
-
-=cut
 
 sub header_lines {
 	my $self = shift;
@@ -734,11 +706,6 @@ sub header_lines {
 	
 }
 
-=item footer_lines()
-
-Set or get footer lines.
-
-=cut
 
 sub footer_lines {
 	my $self = shift;
@@ -756,12 +723,6 @@ sub footer_lines {
 	}
 }
 
-=item finish()
-
-Called by destructor to clean up thinks. Calls store() if auto_atore is on
-and closes csv filehandle.
-
-=cut 
 
 sub finish {
 	my $self = shift;
