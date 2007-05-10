@@ -4,7 +4,7 @@ Text::CSV::Track - module to work with .csv file that stores some value(s) per i
 
 =head1 VERSION
 
-This documentation refers to version 0.5. 
+This documentation refers to version 0.6. 
 
 =head1 SYNOPSIS
 
