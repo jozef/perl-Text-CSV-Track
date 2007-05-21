@@ -17,4 +17,5 @@ WriteMakefile(
 		(ABSTRACT_FROM  => 'lib/Text/CSV/Track.pm', # retrieve abstract from module
        AUTHOR         => 'Jozef Kutej <jozef.kutej@hp.com>') : ()
 	),
+	(MM->can('signature_target') ? (SIGN => 1) : ()),
 );
