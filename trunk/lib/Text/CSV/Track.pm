@@ -207,10 +207,14 @@ and closes csv filehandle.
 	- then rewrite max/min to use it this way
 	- constraints for columns
 	- shell executable to copy, dump csv file or extract data from it
+	- allow having extended csv with header names in every file key=value;key2=value2
+	- atomic writes
+	- allow extended csv lines, lines that look like:
+	    key=value1,key5=value2,key2=value3
 
 =head1 SEE ALSO
 
-L<Text::CSV::Track::Max>, L<Text::CSV::Track::Min>, SVN repository - L<http://svn.cle.sk/svn/pub/cpan/Text-CSV-Track/>
+L<Text::CSV::Track::Max>, L<Text::CSV::Track::Min>, Module Trac - L<http://trac.cle.sk/Text-CSV-Track/>
 
 =head1 AUTHOR
 
