@@ -1,5 +1,11 @@
 Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
 
+0.7 2007 Oct 29
+    - cpants changes
+      pod & pod-coverage
+    - licence
+    - META.yml
+
 0.6 2007 Apr 6
 	- 'identificator_column_number' allows identificator to be in a different column
 	- replaced Text::CSV by Text::CSV_XS because that is the right one
