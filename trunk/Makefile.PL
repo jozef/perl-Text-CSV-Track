@@ -18,4 +18,5 @@ WriteMakefile(
        AUTHOR         => 'Jozef Kutej <jozef.kutej@hp.com>') : ()
 	),
 	(MM->can('signature_target') ? (SIGN => 1) : ()),
+	NO_META => 1,
 );
