@@ -1,0 +1,13 @@
+Changes
+Makefile.PL
+MANIFEST
+SIGNATURE
+README
+t/Text-CSV-Track.t
+t/Text-CSV-Track-Min.t
+t/Text-CSV-Track-Max.t
+t/0-signature.t
+lib/Text/CSV/Track.pm
+lib/Text/CSV/Track/Min.pm
+lib/Text/CSV/Track/Max.pm
+META.yml
