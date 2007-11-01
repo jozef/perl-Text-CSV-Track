@@ -1,5 +1,9 @@
 Revision history for Perl extension Text::CSV::Track, Track::Max, Track::Min.
 
+0.8 2007 Nov 1
+    - safe path to test tempfile (none :)
+    - removed unknown Text::CSV_XS option - type
+
 0.7 2007 Oct 29
     - cpants changes
       pod & pod-coverage
