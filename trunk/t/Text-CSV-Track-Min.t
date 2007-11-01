@@ -55,20 +55,18 @@ isnt($track_object->value_of('test3'), 9999,		'we should have old value in "test
 
 #generate temp file name
 my $tmp_template = 'text-csv-track-XXXXXX';
-my (undef, $short_file_name) = tempfile($tmp_template, OPEN => 0);
-my $tmpdir = File::Spec->tmpdir();
-my $file_name = $tmpdir.'/'.$tmp_template;	#default will be overwriteen if not in DEVELOPMENT mode
+my ($fh, $file_name) = tempfile($tmp_template);
+
+#remove temp file if exists
+close($fh);
+unlink($file_name) or die 'unable to remove "'.$file_name.'"';
 
 #in development it's better to have steady filename other wise it should be random
 if ($DEVELOPMENT) {
-	print "skip random temp filename it's development time\n";	
+	print "skip random temp filename it's development time\n";
+	$file_name = $tmp_template;
+	unlink($file_name);
 }
-else {
-	$file_name = $tmpdir.'/'.$short_file_name;
-}
-
-#remove temp file if exists
-unlink($file_name);
 
 #cleanup after tempfile()
 $OS_ERROR = undef;
