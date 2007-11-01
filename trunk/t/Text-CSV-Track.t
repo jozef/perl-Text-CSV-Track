@@ -19,6 +19,7 @@ use warnings;
 
 #constants
 my $DEVELOPMENT = 0;
+$DEVELOPMENT = 1 if $ENV{'IN_DEBUG_MODE'};
 my $MULTI_LINE_SUPPORT = 0;
 my $EMPTY_STRING = q{};
 my $SINGLE_QUOTE = q{'};
@@ -61,20 +62,18 @@ print "testing with new file\n";
 
 #generate temp file name
 my $tmp_template = 'text-csv-track-XXXXXX';
-my (undef, $short_file_name) = tempfile($tmp_template, OPEN => 0);
-my $tmpdir = File::Spec->tmpdir();
-my $file_name = $tmpdir.'/'.$tmp_template;	#default will be overwriteen if not in DEVELOPMENT mode
+my ($fh, $file_name) = tempfile($tmp_template);
+
+#remove temp file if exists
+close($fh);
+unlink($file_name) or die 'unable to remove "'.$file_name.'"';
 
 #in development it's better to have steady filename other wise it should be random
 if ($DEVELOPMENT) {
-	print "skip random temp filename it's development time\n";	
+	print "skip random temp filename it's development time\n";
+	$file_name = $tmp_template;
+	unlink($file_name);
 }
-else {
-	$file_name = $tmpdir.'/'.$short_file_name;
-}
-
-#remove temp file if exists
-unlink($file_name);
 
 #cleanup after tempfile()
 $OS_ERROR = undef;
@@ -324,7 +323,7 @@ print "test file locking\n";
 
 #open with full time locking
 $track_object = Text::CSV::Track->new({ file_name => $file_name, full_time_lock => 1 });
-open(my $fh, "<", $file_name) or die "can't open file '$file_name' - $OS_ERROR";
+open($fh, "<", $file_name) or die "can't open file '$file_name' - $OS_ERROR";
 $track_object->value_of('x', 1);
 #check lazy init. it should succeed
 isnt(flock($fh, LOCK_SH | LOCK_NB), 0,				'try shared lock while lazy init should not be activated, should succeed');
@@ -826,6 +825,7 @@ is_deeply(\@file_lines_after, \@file_lines,			'check file after store as xml');
 
 ### CLEANUP
 
-#remove temporary file
-unlink($file_name) if not $DEVELOPMENT;
-
+sub END {
+	#remove temporary file
+	unlink($file_name) if not $DEVELOPMENT;
+}

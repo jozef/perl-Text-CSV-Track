@@ -106,7 +106,6 @@ If setting/getting multiple columns then an array.
 		quote_char            => q{"},
 		always_quote          => 0,
 		binary                => 0,
-		type                  => undef,
 	})
 	
 All flags are optional.
@@ -148,7 +147,7 @@ first one set this value. Column are numbered starting with 0 like in an
 @array. ->value_of and ->hash_of are indexed as it the identificator column
 was not there.
 
-See L<Text::CSV_XS> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary, type'
+See L<Text::CSV_XS> for 'sep_char', 'escape_char', 'quote_char', 'always_quote', 'binary'
 
 =item value_of()
 
@@ -547,7 +546,6 @@ sub _init {
 	my $quote_char          = defined $self->quote_char  ? $self->quote_char  : q{"};
 	my $always_quote        = $self->always_quote;
 	my $binary              = $self->binary;
-	my $type                = $self->type;
 	
 	#done with initialization if file_name empty
 	return if not $file_name;
@@ -559,7 +557,6 @@ sub _init {
 		quote_char   => $quote_char,
 		always_quote => $always_quote,
 		binary       => $binary,
-		type         => $type,
 	}));
 
 	#default open mode is reading
