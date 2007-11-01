@@ -109,7 +109,7 @@ is($track_object->value_of('atonce'), 432,	'do we still have it?');
 
 #open with full time locking
 $track_object = Text::CSV::Track::Max->new({ file_name => $file_name, full_time_lock => 1 });
-open(my $fh, "<", $file_name) or die "can't open file '$file_name' - $OS_ERROR";
+open($fh, "<", $file_name) or die "can't open file '$file_name' - $OS_ERROR";
 $track_object->value_of('x', 1);
 #check lazy init. it should succeed
 isnt(flock($fh, LOCK_SH | LOCK_NB), 0,				'try shared lock while lazy init should not be activated, should succeed');
