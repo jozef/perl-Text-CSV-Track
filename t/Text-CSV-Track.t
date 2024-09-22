@@ -9,7 +9,7 @@ BEGIN { plan tests => 91 };
 use Text::CSV::Track;
 
 use File::Temp qw{tempfile};	#generate temp filename
-use File::Spec qw{tmpdir};		#get temp directory
+use File::Spec::Functions qw{tmpdir};		#get temp directory
 use File::Slurp qw{read_file write_file};		#reading whole file
 use English qw(-no_match_vars);
 use Fcntl ':flock'; # import LOCK_* constants
